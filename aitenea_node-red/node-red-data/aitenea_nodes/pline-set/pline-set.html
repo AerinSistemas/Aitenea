@@ -1,0 +1,232 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Pline-set", {
+    category: "AItenea Smart Pipe",
+    color: "#3F679E",
+    defaults: {
+      auth: {
+        value: "",
+        type: "aitenea-conf",
+      },
+      plineName: {
+        value: "",
+        required: true,
+      },
+      plineDescription: {
+        value: "",
+        required: true,
+      },
+      exists: {
+        value: false,
+        required: false,
+      },
+      overwrite: {
+        value: false,
+        required: true,
+      },
+      owner: {
+        value: "",
+        required: true,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-cogs",
+    label: function () {
+      return "Pline-set-" + this.plineName || "Pline-set";
+    },
+    inputLabels: function () {
+      return "From Data Source";},
+    outputLabels: function () {
+      return "To Pline Step";},
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let AUTH_TOKEN = "";
+      let auth = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            login();
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-auth").change(function () {
+        if (initialized) {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            login();
+          }
+        }
+      });
+
+      $("#node-input-plineName").focusout(function () {
+        const plineName = $(this).val();
+        if (plineName != "" && auth != "" && AITENEA_URL != "") {
+          checkIfPlineExists(plineName);
+        }
+      });
+
+      function setAuth() {
+        let selected_auth = $("#node-input-auth")
+          .children("option:selected")
+          .attr("value");
+        if (selected_auth != "_ADD_") {
+          if (selected_auth != null) {
+            node.auth = selected_auth;
+          } else {
+            node.auth = $("#node-input-auth")
+              .children()
+              .first()
+              .attr("value");
+          }
+        }
+
+        if (node.auth != "") {
+          auth = RED.nodes.node(node.auth);
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function login() {
+        let dfd = jQuery.Deferred();
+        const data = {
+          username: auth.user,
+          password: auth.password,
+        };
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/auth/login/`,
+          method: "POST",
+          data: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        })
+          .done(function (json_data) {
+            AUTH_TOKEN = json_data["token"];
+            $("#node-input-owner").val(json_data["user"]["id"]).change();
+
+            $(".pline-data").show();
+
+            dfd.resolve();
+          })
+          .fail(function (jqXHR, textStatus) {
+            $(".pline-data").hide();
+            console.error(jqXHR.responseText);
+            if (jqXHR.responseJSON.hasOwnProperty("non_field_errors")) {
+              showMessage("Incorrect username or password.", "warning");
+            }
+            dfd.fail();
+          })
+          .always(function () {
+            initialized = true;
+          });
+
+        return dfd.promise();
+      }
+
+      function checkIfPlineExists(plineName) {
+        $.ajax({
+          url: `${AITENEA_URL}/api/pline/?name=${plineName}`,
+          method: "GET",
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+        })
+          .done(function (response) {
+            if ("error" in response) {
+              showMessage(response.error);
+            } else {
+              if (response.length > 0) {
+                node.exists = true;
+                $("#node-input-exists").prop("checked", true);
+                if ($("#node-input-overwrite").is(":checked") == false) {
+                  showMessage(
+                    "El pline existe, para continuar seleccione el check de sobreescribir o \
+                          bien elija otro nombre para el pline",
+                    "warning"
+                  );
+                }
+              } else {
+                node.exists = false;
+                $("#node-input-exists").prop("checked", false);
+                $("#node-input-overwrite").prop("checked", false);
+              }
+            }
+          })
+          .fail(function (jqXHR, textStatus) {
+            console.error("error");
+            console.error(textStatus);
+            console.error(jqXHR);
+          });
+      }
+    },
+    oneditsave: function () {
+      let node = this;
+      node.owner = $("#node-input-owner").val();
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="Pline-set">
+  <div class="form-row">
+    <label for="node-input-auth"><i class="fa fa-globe"></i> Auth</label>
+    <input type="text" id="node-input-auth" placeholder="Auth" />
+  </div>
+
+  <div class="form-row pline-plineName pline-data" hidden>
+    <label for="node-input-plineName"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Pline Name</label
+    >
+    <input id="node-input-plineName" type="text" />
+  </div>
+  <div class="form-row pline-plineDescription pline-data" hidden>
+    <label for="node-input-plineDescription"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Pline Description</label
+    >
+    <input id="node-input-plineDescription" type="text" />
+  </div>
+  <div class="form-row pline-data overwrite" hidden>
+    <label for="node-input-overwrite"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Overwrite if
+      exists?</label
+    >
+    <input type="checkbox" id="node-input-overwrite" />
+  </div>
+  <div class="form-row pline-data exists" hidden>
+    <input type="checkbox" id="node-input-exists" style="display:none" hidden />
+  </div>
+  <div class="form-row owner" hidden>
+    <input id="node-input-owner" name="node-input-owner" type="text" />
+  </div>
+</script>
+<script type="text/html" data-help-name="Pline-set">
+  <p>
+    Set the the main attributes of a Pline. It is mandatory to include it at the
+    beginning of the 'steps'.
+  </p>
+</script>

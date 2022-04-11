@@ -1,0 +1,19 @@
+{
+    "name": "pline-run",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "node-red" : {
+      "nodes": {
+          "Pline-Step": "pline-run.js"
+      }
+    },
+    "author": "Jose Luis Blanco",
+    "license": "ISC",
+    "dependencies": {
+      "request": "2.88.2"
+    }
+  }

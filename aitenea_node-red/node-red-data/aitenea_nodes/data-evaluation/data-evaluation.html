@@ -1,0 +1,59 @@
+<!--This first script is used to define the node. It defines category, icon, color, icon, etc.-->
+<script type="text/javascript">
+  RED.nodes.registerType("Data-evaluation", {
+    category: "AItenea Data Cleaning",
+    color: "#14E81B",
+    defaults: {
+      timeout: {
+        value: "30000",
+        required: true,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "batch.svg",
+    label: function () {
+      return "Data-evaluation" || this.name;
+    },
+    inputLabels: function () {
+      return "From Data Source";},
+    outputLabels: function () {
+      return "To Debug";},
+  });
+</script>
+<script type="text/html" data-template-name="Data-evaluation">
+  <!--This script defines the content of the node-->
+  <div class="form-row">
+    <label for="node-input-timeout"><i class="fa fa-globe"></i>Timeout (ms)</label>
+    <input type="number" id="node-input-timeout" step="1000" min="3000" value="30000"/>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="Data-evaluation">
+  <!--This script is used to define the data help of the node-->
+  <p>
+    This node evaluates the acquired dataset. 
+    <hr>
+    The output of this node is a json format and it is structured by two parts:
+
+    <h1 style="color:black;"><b>1. Origin</b></h1>
+    <p>It has the origin of the data such as csv, txt, json, elastic (If the data comes from <i>Elasticsearch</i>), among others.<br>
+      Also, it contains the name of the index that previously were declared in the prior node. 
+      Finally, it shows the columns name that were splitted in the X and Y attributes.    
+    </p>
+
+    <h2 style = "color:black"><b>2. Evaluation</b></h2>
+    <p>The evaluation part indicates the number of entries (rows) that are present on the data to be evaluated. <br>
+      Aside from that, it shows several items that are explained as follows: <br>
+      <ul>
+        <li><b><i>data type X:</i></b> It shows the data type for each attribute that has defined as X attribute.</li>
+        <li><b><i>data describe X:</i></b> t shows the number of entries, mean, standard deviation, minimum value, maximum value, and the percentiles (25%, 50%, 75%).
+           This statistical information is shown for each attribute that has defined as X attribute.</li>
+        <li><b><i>data type Y:</i></b> It shows the data type for each attribute that has defined as Y attribute.</li>
+        <li><b><i>data describe Y:</i></b> It shows the number of entries, mean, standard deviation, minimum value, maximum value, and the percentiles (25%, 50%, 75%).
+          This statistical information is shown for each attribute that has defined as Y attribute.</li>
+        <li><b><i>correlation:</i></b> It shows the relationship between attributes.</li>
+      </ul>
+    </p>
+  </p>
+</script>

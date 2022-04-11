@@ -1,0 +1,205 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Destination-Elastic", {
+    category: "AItenea Connector",
+    color: "#F8A91E",
+    align: 'right',
+    defaults: {
+      server: {
+        value: "",
+        type: "elastic-conf",
+      },
+      indexName: {
+        value: "",
+        required: true,
+      },
+      overwrite: {
+        value: false,
+        required: true,
+      },
+      exists: {
+        value: false,
+        required: false,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "db.png",
+    label: function () {
+      return this.name || "Destination-Elastic-" + this.indexName.toLowerCase();
+    },
+    inputLabels: function () {
+      return "From Data Cleaning or Pline";},
+    outputLabels: function () {
+      return "To Run";},
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let server = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setServer();
+
+          if (server != "" && AITENEA_URL != "") {
+            $(".indexName").show();
+            $(".overwrite").show();
+          }
+        });
+      });
+
+      $("#node-input-server").change(function () {
+        setServer();
+
+        if (server != "" && AITENEA_URL != "") {
+          $(".indexName").show();
+          $(".overwrite").show();
+        }
+      });
+
+      $("#node-input-indexName").focusout(function () {
+        const indexName = $(this).val();
+        if (indexName != "" && server != "" && AITENEA_URL != "") {
+          checkIfIndexExists(indexName);
+        }
+      });
+
+      function setServer() {
+        let selected_server = $("#node-input-server")
+          .children("option:selected")
+          .attr("value");
+        if (selected_server != "_ADD_") {
+          if (selected_server != null) {
+            node.server = selected_server;
+          } else {
+            node.server = $("#node-input-server")
+              .children()
+              .first()
+              .attr("value");
+          }
+
+          if (node.server != "") {
+            server = RED.nodes.node(node.server);
+          }
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function checkIfIndexExists(indexName) {
+        const data = {
+          source_connector: {
+            connection: {
+              host: server.host,
+              port: server.port,
+              user: server.user,
+              password: server.password,
+            },
+            type_connector: "elasticsearch",
+            action: "check-exists-index",
+            index: {
+              name: indexName,
+            },
+          },
+        };
+        $.ajax({
+          url: `${AITENEA_URL}/api/elastic_get_index/`,
+          method: "POST",
+          data: JSON.stringify(data),
+        })
+          .done(function (res) {
+            if ("error" in res) {
+              showMessage(res.error);
+            } else {
+              let exists = res.data.exists;
+              if (exists == true) {
+                node.exists = true;
+                $("#node-input-exists").prop("checked", true);
+                if ($("#node-input-overwrite").is(":checked") == false) {
+                  showMessage(
+                    "El índice existe en el elastic de destino, para continuar seleccione el check de sobreescribir o \
+                      bien elija otro nombre para el índice de destino",
+                    "warning"
+                  );
+                }
+              } else {
+                node.exists = false;
+                $("#node-input-exists").prop("checked", false);
+                $("#node-input-overwrite").prop("checked", false);
+              }
+            }
+          })
+          .fail(function (jqXHR, textStatus) {
+            console.error("error");
+            console.error(textStatus);
+            console.error(jqXHR);
+          });
+      }
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="Destination-Elastic">
+  <div class="form-row">
+    <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
+    <input type="text" id="node-input-server" placeholder="Server" />
+  </div>
+
+  <div class="form-row indexName" hidden>
+    <label for="node-input-indexName"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Index Name</label
+    >
+    <input id="node-input-indexName" type="text" placeholder="Test + Result" />
+  </div>
+  <div class="form-row overwrite" hidden>
+    <label for="node-input-overwrite"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Overwrite if
+      exists?</label
+    >
+    <input type="checkbox" id="node-input-overwrite" />
+  </div>
+  <div class="form-row exists" hidden>
+    <input type="checkbox" id="node-input-exists" style="display:none" hidden />
+  </div>
+
+  <div class="form-row select-data" hidden>
+    <p>*Done to finish</p>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="Destination-Elastic">
+  <p>
+    This node allows you to save coming from AItenea predictions or
+    transformation to an elasticsearch index.
+  </p>
+  <h3>Details</h3>
+  <p>
+    You must provide elasticsearch connection data. You can use the data
+    provided on 'From-Elasticsearch' node if it is correctly setted on the flow.
+    For that, mark the 'Use Origin Connection' checkbox.
+  </p>
+  <p>
+    There is another box to set the name of the index in where you want to save
+    the data. If index exists, you have to mark the overwrite checkbox .
+  </p>
+  <p>Finally, click on 'Done'.</p>
+</script>

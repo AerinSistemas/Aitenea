@@ -1,0 +1,121 @@
+<script type="text/javascript">
+  "use strict";
+  /*global RED*/
+  RED.nodes.registerType("redis-conf", {
+    category: "config",
+    defaults: {
+      name: {
+        value: "Local",
+        required: true,
+      },
+      options: {
+        value: "{}",
+        required: true,
+        validate: RED.validators.typedInput("optionsType"),
+      },
+      cluster: {
+        value: false,
+      },
+      optionsType: { value: "json" },
+    },
+    label: function () {
+      return this.name || "Redis host";
+    },
+    oneditprepare: function () {
+      $("#node-config-input-options").typedInput({
+        default: "str",
+        typeField: "#node-config-input-optionsType",
+        types: ["str", "env", "json", "jsonata"],
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="redis-conf">
+  <div class="form-row">
+    <label for="node-config-input-name"
+      ><i class="fa fa-server"></i> Name</label
+    >
+    <input type="text" id="node-config-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-options"
+      ><i class="fa fa-random"></i> Options</label
+    >
+    <input type="text" id="node-config-input-options" />
+    <input type="hidden" id="node-config-input-optionsType" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-cluster">&nbsp;</label>
+    <input
+      type="checkbox"
+      id="node-config-input-cluster"
+      style="display:inline-block; width:15px; vertical-align:baseline;"
+    />
+    Cluster
+  </div>
+</script>
+
+<script type="text/javascript">
+  /*global RED*/
+  RED.nodes.registerType("redis-sub", {
+    category: "AItenea Smart Pipe",
+    inputs: 1,
+    outputs: 1,
+    color: "#ffffff",
+    icon: "redis.png",
+    paletteLabel: "Redis-SUB",
+    defaults: {
+      server: {
+        value: "",
+        type: "redis-conf",
+      },
+      name: {
+        value: "",
+      },
+      obj: {
+        value: true,
+      },
+      timeout: {
+        value: 0,
+        validate: RED.validators.number(),
+      },
+    },
+    label: function () {
+      return this.name || this.topic || "Redis-SUB";
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="redis-sub">
+  <div class="form-row">
+    <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
+    <input type="text" id="node-input-server" placeholder="Server" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-timeout"
+      ><i class="fa fa-clock-o"></i> Timeout</label
+    >
+    <input type="text" id="node-input-timeout" placeholder="Timeout" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-obj">&nbsp;</label>
+    <input
+      type="checkbox"
+      id="node-input-obj"
+      style="display:inline-block; width:15px; vertical-align:baseline;"
+    />
+    Parse payload from JSON Object
+  </div>
+</script>
+
+<script type="text/html" data-help-name="redis-sub">
+  <p>Redis SUB</p>
+  <p>Acts as Subscriber, using BLPOP, SUBSCRIBE or PSUBSCRIBE</p>
+  <p>The msg.topic is pattern on all methods, separated by spaces.</p>
+  <p>Note: Only PSUBSCRIBE supports patterns with wildcards.</p>
+</script>

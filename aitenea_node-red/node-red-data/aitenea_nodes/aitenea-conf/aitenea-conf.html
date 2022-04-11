@@ -1,0 +1,48 @@
+<script type="text/javascript">
+  "use strict";
+  /*global RED*/
+  RED.nodes.registerType("aitenea-conf", {
+    category: "config",
+    defaults: {
+      name: {
+        value: "Local",
+        required: true,
+      },
+      user: {
+        value: "",
+        required: true,
+      },
+      password: {
+        value: "",
+        required: true,
+      }
+    },
+    label: function () {
+      return this.name || "AITenea host";
+    },
+    oneditprepare: function () {},
+  });
+</script>
+
+<script type="text/html" data-template-name="aitenea-conf">
+  <div class="form-row">
+    <label for="node-config-input-name"
+      ><i class="fa fa-server"></i> Name</label
+    >
+    <input type="text" id="node-config-input-name" />
+  </div>
+
+  <div class="form-row aitenea-connection">
+    <label for="node-config-input-user"
+      ><i class="fa fa-pencil"></i>User AITenea</label
+    >
+    <input id="node-config-input-user" type="text" placeholder="username" />
+  </div>
+  <div class="form-row aitenea-connection">
+    <label for="node-config-input-password"
+      ><i class="fa fa-pencil"></i>Password AITenea</label
+    >
+    <input id="node-config-input-password" type="password" />
+  </div>
+
+</script>

@@ -1,0 +1,9 @@
+{
+    "restartable": "rs",
+    "ignore": ["flows.json"],
+    "watch": [
+        "/data/*",
+        "*"
+    ],
+    "ext": "js, css, html, json"
+}

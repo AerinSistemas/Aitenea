@@ -1,0 +1,61 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Manual-data", {
+    category: "AItenea Connector",
+    color: "#14E81B",
+    defaults: {
+      data: {
+        value: "",
+        required: true,
+      },
+    },
+    inputs: 0,
+    outputs: 1,
+    icon: "batch.svg",
+    label: function () {
+      return "Manual-data" || this.name;
+    },
+    outputLabels: function () {
+      return "To Model-get or Model-set " + this.data;
+    },
+    oneditprepare: function (msg) {
+      $("#node-input-data").typedInput({
+        type:"json",
+        types:["json"]
+      });
+    },
+    button: {
+      enabled: function () {
+        return true;
+      },
+      onclick: function () {
+        var node = this;
+        $.ajax({
+          url: "inject/" + this.id,
+          type: "POST",
+          contentType: "application/json; charset=utf-8",
+          success: function (resp) {
+            console.log("SUCESSS", resp);
+          }
+        });
+      },
+
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="Manual-data">
+
+<div class="form-row node-text-editor-row">
+  <label for="node-input-data">
+    <i class="fa fa-pencil" aria-hidden="true"></i>Data in JSON</label>
+  <input type="text" id="node-input-data"  placeholder="{'X':{'A':[1]}}" >
+</div>
+</script>
+
+
+
+<script type="text/html" data-help-name="Manual-data">
+  <p>
+    This node enters numeric values by hand in json representation
+  </p>
+</script>

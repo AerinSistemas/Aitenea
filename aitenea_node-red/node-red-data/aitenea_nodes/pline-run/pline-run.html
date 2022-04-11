@@ -1,0 +1,330 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Pline-run", {
+    category: "AItenea Smart Pipe",
+    color: "#f54e42",
+    align: 'right',
+    defaults: {
+      auth: {
+        value: "",
+        type: "aitenea-conf",
+      },
+      runselect: {
+        value: "fit",
+        required: true,
+      },
+      timeout: {
+        value: 5000,
+        validate: RED.validators.number(),
+      },
+      /*
+      output: {
+        value: "node",
+        required: true,
+      },
+      */
+      trainSize: {
+        value: "70",
+        required: false,
+      },
+      generations: {
+        value: 1,
+        required: false
+      },
+      population: {
+        value: 1,
+        required: false
+      },
+      runAsGA: {
+        value: false,
+        required: true
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: function() {
+      if(this.runAsGA)
+      {
+        return "font-awesome/fa-venus-mars";
+      }
+      else{
+        return "font-awesome/fa-rocket";
+      }
+    },
+    label: function () {
+      if(this.runAsGA)
+      {
+        return "Pline-run-" + this.runselect  + " GENETIC " || this.name; 
+      }
+      return "Pline-run-" + this.runselect || this.name;
+    },
+    inputLabels: function () {
+      return "From Pline Steps, Model Get or Data Destination";
+    },
+    outputLabels: function () {
+      return "To Debug";
+    },
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let AUTH_TOKEN = "";
+      let auth = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $("#node-input-trainSize").val(node.trainSize);
+        $("#train-size").text(node.trainSize);
+
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                if (node.runselect.includes("fit")) {
+                  $(".range-train-size").show();
+                  if ((node.runselect == ("fit")) || (node.runselect == ("fit_predict"))) {
+                    $(".runAsGA").show();
+                    if (node.runAsGA)
+                    {
+                      $(".pline-gen").show();
+                    }
+                    else{
+                      $(".pline-gen").hide();
+                    }
+                  }
+                  else {
+                    $(".runAsGA").hide();
+                    $(".pline-gen").hide();
+                  }
+                }
+                else {
+                  $(".runAsGA").hide();
+                  $(".pline-gen").hide();
+                }
+                initialized = true;
+              }
+            });
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-auth").change(function () {
+        if (initialized) {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                if (node.runAsGA) {
+                  $(".pline-gen").show();
+                }
+                if (node.runselect.includes("fit")) {
+                  $(".range-train-size").show();
+                }
+                initialized = true;
+              }
+            });
+          }
+        }
+      });
+
+      $("#node-input-trainSize").on("input", function () {
+        const trainSize = $("#node-input-trainSize").val();
+        $("#train-size").text(trainSize);
+      });
+
+      $("#node-input-runselect").change(function () {
+        if (initialized) {
+          const action = $(this).children("option:selected").attr("value");
+          if (action.includes("fit")) {
+            $(".range-train-size").show();
+            if ((action == ("fit")) || (action == ("fit_predict"))) {
+              $(".runAsGA").show();
+            }
+            else {
+              $(".runAsGA").hide();
+              $(".pline-gen").hide();
+            }
+          }
+          else {
+            $(".range-train-size").hide();
+            $(".runAsGA").hide();
+            $(".pline-gen").hide();
+          }
+        }
+      });
+
+      $("#node-input-runAsGA").change(function () {
+        if (initialized) {
+          const runAsGA = $("#node-input-runAsGA").prop('checked');
+          if (runAsGA) {
+            $(".pline-gen").show();
+          }
+          else {
+            $(".pline-gen").hide();
+          }
+        }
+      });
+
+      function setAuth() {
+        let selected_auth = $("#node-input-auth")
+          .children("option:selected")
+          .attr("value");
+        if (selected_auth != "_ADD_") {
+          if (selected_auth != null) {
+            node.auth = selected_auth;
+          } else {
+            node.auth = $("#node-input-auth")
+              .children()
+              .first()
+              .attr("value");
+          }
+        }
+
+        if (node.auth != "") {
+          auth = RED.nodes.node(node.auth);
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function login() {
+        let dfd = jQuery.Deferred();
+        const data = {
+          username: auth.user,
+          password: auth.password,
+        };
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/auth/login/`,
+          method: "POST",
+          data: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        })
+          .done(function (json_data) {
+            AUTH_TOKEN = json_data["token"];
+
+            $(".pline-data").show();
+
+            dfd.resolve();
+          })
+          .fail(function (jqXHR, textStatus) {
+            $(".pline-data").hide();
+            console.error(jqXHR.responseText);
+            if (jqXHR.responseJSON.hasOwnProperty("non_field_errors")) {
+              showMessage("Incorrect username or password.", "warning");
+            }
+
+            initialized = true;
+            dfd.fail();
+          });
+
+        return dfd.promise();
+      }
+
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="Pline-run">
+  <div class="form-row">
+    <label for="node-input-auth"><i class="fa fa-globe"></i> Auth</label>
+    <input type="text" id="node-input-auth" placeholder="Auth" />
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-timeout"
+      ><i class="fa fa-clock-o"></i> Timeout</label
+    >
+    <input type="text" id="node-input-timeout" placeholder="Timeout" />
+  </div>
+
+  <div class="form-row runselect pline-data" hidden>
+    <label for="node-input-runselect"
+      ><i class="fa fa-pencil" aria-hidden="false"></i>Select action:</label
+    >
+    <select id="node-input-runselect">
+      <option value="fit">Fit</option>
+      <option value="fit_predict">Fit predict</option>
+      <option value="fit_transform">Fit transform</option>
+      <option value="predict">Predict</option>
+      <!--<option value="transform">Transform</option>-->
+    </select>
+  </div>
+  <!--
+  <div class="form-row output pline-data">
+    <label for="node-input-output"
+      ><i class="fa fa-pencil" aria-hidden="false"></i>Select destination:</label
+    >
+    <select id="node-input-output">
+      <option value="elasticsearch">Elasticsearch</option>
+      <option value="node">Node output</option>
+    </select>
+  </div>
+  -->
+
+  <div class="form-row range-train-size" hidden>
+    <label for="node-input-trainSize">
+      <i class="fa fa-pencil" aria-hidden="false"></i>Training set size. If there is no target, 100% will be used
+    </label>
+    <input
+      id="node-input-trainSize"
+      style="width: 48%;"
+      type="range"
+      min="10"
+      max="100"
+      value="70"
+    />
+    <span id="train-size"></span><span>%</span>
+  </div>
+
+
+  <div class="form-row runAsGA pline-data" hidden>
+    <label for="node-input-runAsGA"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Run as GA:</label
+    >
+    <input type="checkbox" id="node-input-runAsGA" />
+  </div>
+
+  <div class="form-row pline-generations pline-gen" hidden>
+    <label for="node-input-generations"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Generations to run</label
+    >
+    <input id="node-input-generations" type="number" min="1" />
+  </div>
+  <div class="form-row pline-population pline-gen" hidden>
+    <label for="node-input-population"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Population amount</label
+    >
+    <input id="node-input-population" type="number" min="1" />
+  </div>
+
+</script>
+
+<script type="text/html" data-help-name="Pline-run">
+  <p>
+    This node commands an execution of a pipeline. The action can be a fit, a
+    fit transform or a fit predict.
+  </p>
+</script>

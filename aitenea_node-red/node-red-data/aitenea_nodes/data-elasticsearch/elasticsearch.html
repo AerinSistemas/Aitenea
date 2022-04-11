@@ -1,0 +1,340 @@
+<script type="text/javascript">
+  RED.nodes.registerType("From-Elasticsearch", {
+    category: "AItenea Connector",
+    color: "#F8D91E",
+    defaults: {
+      server: {
+        value: "",
+        type: "elastic-conf",
+      },
+      nodeName: {
+        value: "",
+        required: false,
+      },
+      index: {
+        value: "",
+        required: true,
+      },
+      xAttr: {
+        value: "",
+        required: true,
+      },
+      yAttr: {
+        value: "",
+        required: true,
+      },
+      query: {
+        value: "",
+        required: false,
+      },
+      typeConnector: {
+        value: "elasticsearch",
+        required: true,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "db.png",
+    label: function () {
+      return this.name || "From-Elasticsearch-" + this.index;
+    },
+    oneditsave: function () {
+      let node = this;
+      node.xAttr = $("#node-input-x-attr").val();
+      node.yAttr = $("#node-input-y-attr").val();
+      node.query = $("#node-input-query").val();
+      let check1 = (node.xAttr == 'all' && node.yAttr != 'none');
+      let check2 = false;
+      node.yAttr.forEach(element => {
+        if (node.xAttr.includes(element))
+        {
+          check2 = check2 || true;
+        }
+        
+      });
+      if (check1 || check2) 
+      {
+        RED.notify("The input variables includes some target attributes, this can break the output ", "error");
+      }
+      
+    },
+    outputLabels: function () {
+      return "X: " + this.xAttr + " -- y: " + this.yAttr;
+    },
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let server = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setServer();
+
+          if (server != "" && AITENEA_URL != "") {
+            getAllIndex();
+
+            if (node.index != "") {
+              $("#node-input-index").val(node.index);
+              getIndexAttributes(node.index);
+            }
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-server").change(function () {
+        if (initialized) {
+          setServer();
+
+          if (server != "" && AITENEA_URL != "") {
+            getAllIndex();
+            if (node.index != "") {
+              $("#node-input-index").val(node.index);
+              getIndexAttributes(node.index);
+            }
+          }
+        }
+      });
+
+      $("#node-input-index").change(function () {
+        const index = $("#node-input-index").val();
+        if (server != "" && AITENEA_URL != "") {
+          if (index.length > 0) {
+            getIndexAttributes(index);
+          }
+        }
+      });
+
+      function setServer() {
+        let selected_server = $("#node-input-server")
+          .children("option:selected")
+          .attr("value");
+        if (selected_server != "_ADD_") {
+          if (selected_server != null) {
+            node.server = selected_server;
+          } else {
+            node.server = $("#node-input-server")
+              .children()
+              .first()
+              .attr("value");
+          }
+
+          if (node.server != "") {
+            server = RED.nodes.node(node.server);
+          }
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function getAllIndex() {
+        $("#node-input-index")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="" selected>Select a Index</option>')
+          .val();
+
+        let data = {
+          source_connector: {
+            connection: {
+              host: server.host,
+              port: server.port,
+              user: server.user,
+              password: server.password,
+            },
+            type_connector: "elasticsearch",
+            action: "get-all-index",
+          },
+        };
+        $.ajax({
+          url: `${AITENEA_URL}/api/elastic_get_index/`,
+          method: "POST",
+          data: JSON.stringify(data),
+        })
+          .done(function (json_data) {
+            const data = json_data["data"];
+            $.each(data, function (key, value) {
+              $("#node-input-index").append(
+                $("<option></option>").attr("value", value).text(value)
+              );
+            });
+            $(".select-index").show();
+
+            if (node.index != "") {
+              $(".node-input-attr").show();
+              $(".query").show();
+              $('#node-input-index option[value="' + node.index + '"]').prop(
+                "selected",
+                "selected"
+              );
+            }
+          })
+          .always(function () {
+            if (node.index == "") {
+              initialized = true;
+            }
+          });
+      }
+
+      function getIndexAttributes(index) {
+        $("#node-input-x-attr")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="all" selected>All Attributes</option>')
+          .val();
+        $("#node-input-y-attr")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="none" selected>None Attributes</option>')
+          .val();
+
+        let data = {
+          source_connector: {
+            connection: {
+              host: server.host,
+              port: server.port,
+              user: server.user,
+              password: server.password,
+            },
+            type_connector: "elasticsearch",
+            action: "get-attributes",
+            index: index,
+          },
+        };
+        $.ajax({
+          url: `${AITENEA_URL}/api/elastic_get_index/`,
+          method: "POST",
+          data: JSON.stringify(data),
+        })
+          .done(function (json_data) {
+            const names = json_data["data"]["names"];
+            const values = json_data["data"]["values"];
+            let cont = 0;
+
+            $.each(names, function (key, name) {
+              $("#node-input-x-attr").append(
+                $("<option></option>").attr("value", values[cont]).text(name)
+              );
+              $("#node-input-y-attr").append(
+                $("<option></option>").attr("value", values[cont]).text(name)
+              );
+              cont = cont + 1;
+            });
+            $(".elastic-data").show();
+
+            if (node.index != "") {
+              $("#node-input-x-attr").val(node.xAttr).change();
+              $("#node-input-y-attr").val(node.yAttr).change();
+            }
+          })
+          .always(function () {
+            initialized = true;
+          });
+      }
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="From-Elasticsearch">
+  <div class="form-row">
+    <label for="node-input-server"><i class="fa fa-globe"></i> Server</label>
+    <input type="text" id="node-input-server" placeholder="Server" />
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-nodeName"
+      ><i class="fa fa-pencil" aria-hidden="true"></i> Node Name</label
+    >
+    <input
+      id="node-input-nodeName"
+      type="text"
+      placeholder="Data temp + Other data"
+    />
+  </div>
+
+  <div class="form-row select-index elastic-data" hidden>
+    <label for="node-input-index">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select a Index
+    </label>
+    <select id="node-input-index">
+      <option value="" selected>Select a Index</option>
+    </select>
+  </div>
+  <div class="form-row select-data" hidden>
+    <p>*Done to finish</p>
+  </div>
+  <div class="form-row node-input-attr elastic-data" hidden>
+    <label for="node-input-x-attr">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select X Attributes
+    </label>
+    <select id="node-input-x-attr" multiple>
+      <option value="all" selected>All Attributes</option>
+    </select>
+    <br /><br />
+    <label for="node-input-y-attr">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select y Attributes
+    </label>
+    <select id="node-input-y-attr" multiple>
+      <option value="none" selected>None Attributes</option>
+    </select>
+  </div>
+  <br />
+  <div id="query" class="query elastic-data" hidden>
+    <label for="node-input-name"><i class="fa fa-tag"></i> Elastic Query</label>
+    <textarea
+      type="text"
+      id="node-input-query"
+      rows="5"
+      cols="1000"
+      placeholder="Describe yourself here..."
+    >
+    </textarea>
+  </div>
+  <br />
+  <!-- <div class="form-row select-index" hidden>
+        <button id="save-index">Search Data</button>
+      </div> -->
+</script>
+
+<script type="text/html" data-help-name="From-Elasticsearch">
+  <p>
+    This node allows you to extract data from an elasticsearch index to use in
+    AItenea algorithms.
+  </p>
+  <h3>Details</h3>
+  <p>
+    In first screen you must provided elasticsearch connection data to be able
+    to check indexes or make queries. Once you've done that, click on 'Save
+    connection'.
+  </p>
+  <p>
+    Second screen allows you to select the X values and the y values after that
+    select the index you want. Also allows use the pure elasticsearch query if
+    you fill the "Elastic Query" text area.
+  </p>
+  <p>Finally, click on 'Done'.</p>
+</script>

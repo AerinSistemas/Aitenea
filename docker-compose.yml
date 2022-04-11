@@ -1,0 +1,101 @@
+version: "3.7"
+
+services:
+  postgres-aitenea:
+    image: postgres:14
+    security_opt:
+    - seccomp:unconfined
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    container_name: postgres-aitenea
+    restart: ${RESTART}
+    environment:
+      POSTGRES_DB: aitenea
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: maLe2K21
+    networks:
+      aitenea:
+        ipv4_address: 172.61.0.4
+
+  backend-aitenea:
+    build:
+      context: ./
+      dockerfile: ./docker/backend/Dockerfile
+    volumes:
+      - "./aitenea_core:/opt/aitenea/aitenea_core"
+      - "./aitenea_api:/opt/aitenea/aitenea_api"
+      - "./docs:/opt/aitenea/docs"
+      - "./docker/backend/config:/opt/aitenea/aitenea-config"
+      - "./logsconf:/opt/aitenea/logsconf"
+      - "./exceptions:/opt/aitenea/exceptions"
+      - "./elastictools:/opt/elastictools"
+      - "./scripts:/opt/aitenea/scripts"
+      - "./data/csv:/opt/aitenea/data/csv"
+    env_file:
+      - .env
+    command: bash -c "sleep 3; printenv; python3 manage.py runserver 0.0.0.0:7000"
+    container_name: backend-aitenea
+    restart: ${RESTART}
+    ports:
+      - "7000:7000"
+    networks:
+      aitenea:
+        ipv4_address: 172.61.0.6
+
+  frontend-aitenea:
+    build:
+      context: ./
+      dockerfile: ./docker/frontend/Dockerfile
+    volumes:
+      - "./aitenea_api:/opt/aitenea/aitenea_api"
+      - "./package.json:/opt/aitenea/package.json"
+      - "./webpack.config.js:/opt/aitenea/webpack.config.js"
+      - "./babel.config.json:/opt/aitenea/babel.config.json"
+      - "./.env:/opt/aitenea/.env"
+    command: bash -c "npm run dev"
+    container_name: frontend-aitenea
+    restart: ${RESTART}
+    networks:
+      aitenea:
+        ipv4_address: 172.61.0.12
+    depends_on:
+      - backend-aitenea
+
+
+  node-red-aitenea:
+    build:
+      context: ./
+      dockerfile: ./docker/node-red/Dockerfile
+    container_name: node-red-aitenea
+    restart: ${RESTART}
+    ports:
+      - "1880:1880"
+    env_file:
+      - .env
+    volumes:
+      - "./aitenea_node-red/node-red-data:/data"
+    networks:
+      aitenea:
+        ipv4_address: 172.61.0.10
+
+  redis-aitenea:
+    image: redis:alpine
+    container_name: redis-aitenea
+    command: redis-server --bind redis-aitenea --requirepass MLReDiS2K21 --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    ports:
+      - "6379:6379"
+    networks:
+      aitenea:
+        ipv4_address: 172.61.0.8
+
+networks:
+  aitenea:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.61.0.0/24
+
+volumes:
+  db_data:

@@ -1,0 +1,16 @@
+{
+    "name": "model-get",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "node-red" : {
+      "nodes": {
+          "pline-box": "model-get.js"
+      }
+    },
+    "author": "Gonzalo Martínez",
+    "license": "ISC"
+  }

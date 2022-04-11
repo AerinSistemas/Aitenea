@@ -1,0 +1,269 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Model-get", {
+    category: "AItenea Smart Pipe",
+    color: "#3F879E",
+    defaults: {
+      auth: {
+        value: "",
+        type: "aitenea-conf",
+      },
+      plineId: {
+        value: "",
+        required: true,
+      },
+      plineD: {
+        value: "",
+        required: false,
+      },
+      plineX: {
+        value: "",
+        required: false,
+      },
+      pliney: {
+        value: "",
+        required: false,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "font-awesome/fa-upload",
+    label: function () {
+      return "Model-get-" + this.plineD || "Model-get";
+    },
+    inputLabels: function () {
+      return "From Data Source";
+    },
+    outputLabels: function () {
+      return "To Data Destination or Run";
+    },
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let AUTH_TOKEN = "";
+      let auth = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                getPlineList();
+              }
+            });
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-auth").change(function () {
+        if (initialized) {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                getPlineList();
+              }
+            });
+          }
+        }
+      });
+
+      $("#node-input-plineId").change(function () {
+        $("#node-input-plineDescription").text("");
+        $("#node-input-plineTable").text("");
+        $("#node-input-plineXinf").text("");
+        $("#node-input-plineYinf").text("");
+        const pk = $(this).val();
+        if (pk != null && pk != "" && pk != "all") {
+          getPline(pk);
+        }
+      });
+
+      function setAuth() {
+        let selected_auth = $("#node-input-auth")
+          .children("option:selected")
+          .attr("value");
+        if (selected_auth != "_ADD_") {
+          if (selected_auth != null) {
+            node.auth = selected_auth;
+          } else {
+            node.auth = $("#node-input-auth")
+              .children()
+              .first()
+              .attr("value");
+          }
+        }
+
+        if (node.auth != "") {
+          auth = RED.nodes.node(node.auth);
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function login() {
+        let dfd = jQuery.Deferred();
+        const data = {
+          username: auth.user,
+          password: auth.password,
+        };
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/auth/login/`,
+          method: "POST",
+          data: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        })
+          .done(function (json_data) {
+            AUTH_TOKEN = json_data["token"];
+
+            $(".pline-data").show();
+
+            dfd.resolve();
+          })
+          .fail(function (jqXHR, textStatus) {
+            $(".pline-data").hide();
+            console.error(jqXHR.responseText);
+            if (jqXHR.responseJSON.hasOwnProperty("non_field_errors")) {
+              showMessage("Incorrect username or password.", "warning");
+            }
+
+            initialized = true;
+            dfd.fail();
+          });
+
+        return dfd.promise();
+      }
+
+      function getPlineList() {
+        $("#node-input-plineId")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="all" selected>Select pLine Name</option>')
+          .val();
+        $("#node-input-plineDescription").text("");
+        $("#node-input-plineTable").text("");
+        $("#node-input-plineXinf").text("");
+        $("#node-input-plineYinf").text("");
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/pline/`,
+          method: "GET",
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+        })
+          .done(function (response) {
+            $.each(response, function (key, value) {
+              $("#node-input-plineId").append(
+                $("<option></option>").attr("value", value.id).text(value.name)
+              );
+            });
+            if (node.plineId != "") {
+              $(
+                '#node-input-plineId option[value="' + node.plineId + '"]'
+              ).prop("selected", "selected");
+              $("#node-input-plineId").trigger("change");
+            }
+            if (node.plineDescription != "") {
+              $("#node-input-plineDescription").text(node.plineDescription);
+            }
+
+            $(".pline-data").show();
+          })
+          .always(function () {
+            initialized = true;
+          });
+      }
+
+      function getPline(pk) {
+        $.ajax({
+          url: `${AITENEA_URL}/api/pline/?id=${pk}`,
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+          method: "GET",
+          data: {},
+        }).done(function (response) {
+          let metadata = response[0].metadata;
+          node.plineD = response[0].description;
+          node.plineX = metadata.info_data.X;
+          node.pliney = metadata.info_data.y;
+          $("#node-input-plineDescription").text(response[0].description);
+          $("#node-input-plineTable").text(metadata.info_data.table);
+          $("#node-input-plineXinf").text(metadata.info_data.X);
+          $("#node-input-plineYinf").text(metadata.info_data.y);
+        });
+      }
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="Model-get">
+  <div class="form-row">
+    <label for="node-input-auth"><i class="fa fa-globe"></i> Auth</label>
+    <input type="text" id="node-input-auth" placeholder="Auth" />
+  </div>
+
+  <div class="form-row select-pline-name pline-data" hidden>
+    <label for="node-input-plineId"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Select pLine Name</label
+    >
+    <select id="node-input-plineId">
+      <option value="" pk="" selected>Select pLine Name</option>
+    </select>
+  </div>
+  <div class="form-row textarea-plineDescription pline-data" hidden>
+    <label for="node-input-plineDescription"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>pLine Description</label
+    >
+    <textarea id="node-input-plineDescription" readonly></textarea>
+  </div>
+  <div class="form-row textarea-plineTable pline-data" hidden>
+    <label for="node-input-plineTable"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>pLine Table</label
+    >
+    <textarea id="node-input-plineTable" readonly></textarea>
+  </div>
+  <div class="form-row textarea-plineXinf pline-data" hidden>
+    <label for="node-input-plineXinf"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>pLine X</label
+    >
+    <textarea id="node-input-plineXinf" readonly></textarea>
+  </div>
+  <div class="form-row textarea-plineYinf pline-data" hidden>
+    <label for="node-input-plineYinf"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>pLine y</label
+    >
+    <textarea id="node-input-plineYinf" readonly></textarea>
+  </div>
+</script>
+<script type="text/html" data-help-name="Model-get">
+  <p>
+    Get Pline model trained with AItenea. This model can be used to make
+    predictions with new data.
+  </p>
+  <h3>Details</h3>
+  <p>Just select your previously trained model.</p>
+</script>

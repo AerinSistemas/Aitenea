@@ -1,0 +1,46 @@
+$separator-color-light: #313131;
+$separator-color: #424242;
+$background-color: #1b1a19;
+$foreground-color: #242322;
+$input-background: #232223;
+
+$dark-btn-background: #1289b1;
+$light-btn-background: #e4e4e4;
+$button-text-color: #fff;
+
+$theme-color-1: #37bef0;
+$theme-color-2: #065a7b;
+$theme-color-3: #2eb1e0;
+$theme-color-4: #28a9d7;
+$theme-color-5: #23a2cf;
+$theme-color-6: #065a7b;
+
+$primary-color: #8f8f8f;
+$secondary-color: #707070;
+$muted-color: #696969;
+
+$gradient-color-1 : #37bef0;
+$gradient-color-2 : #1289b1;
+$gradient-color-3 : #065a7b;
+
+$lp-bg-color-1 : #065a7b;
+$lp-bg-color-2 : #066386;
+$lp-bg-color-3 : #06698d;
+$lp-bg-color-4 : #087197;
+
+$shadow-offsets-top : 1 3 10 14 19;
+$shadow-blurs-top: 2 6 10 14 19;
+$shadow-opacities-top: 0.1 0.3 0.6 0.7 0.8;
+
+$shadow-offsets-bottom : 1 3 6 10 15;
+$shadow-blurs-bottom: 3 6 6 5 6;
+$shadow-opacities-bottom: 0.1 0.3 0.6 0.7 0.8;
+
+$logo-path: "/aitenea_api/frontend/static/assets/logos/white.svg";
+$logo-path-mobile: "/aitenea_api/frontend/static/assets/logos/mobile.svg";
+
+$lp-logo-path-pinned: "/aitenea_api/frontend/static/assets/logos/white-full.svg";
+$lp-logo-path: "/aitenea_api/frontend/static/assets/logos/white-full.svg";
+
+
+@import "../main.scss";

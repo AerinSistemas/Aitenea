@@ -1,0 +1,1 @@
+export const getSelectedItems = state => state.reportsApp.selectedItems;

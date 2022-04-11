@@ -1,0 +1,443 @@
+<script type="text/javascript">
+  RED.nodes.registerType("From-CSV", {
+    category: "AItenea Connector",
+    color: "#F8D91E",
+    defaults: {
+      auth: {
+        value: "",
+        type: "aitenea-conf",
+      },
+      fileName: {
+        value: "",
+        required: false,
+      },
+      index: {
+        value: "",
+        required: true,
+      },
+      xAttr: {
+        value: "",
+        required: true,
+      },
+      yAttr: {
+        value: "",
+        required: true,
+      },
+    },
+    inputs: 0,
+    outputs: 1,
+    icon: "db.png",
+    label: function () {
+      return this.name || "From-CSV-" + this.index;
+    },
+    oneditsave: function () {
+      let node = this;
+      node.xAttr = $("#node-input-x-attr").val();
+      node.yAttr = $("#node-input-y-attr").val();
+      let check1 = (node.xAttr == 'all' && node.yAttr != 'none');
+      let check2 = false;
+      node.yAttr.forEach(element => {
+        if (node.xAttr.includes(element))
+        {
+          check2 = check2 || true;
+        }
+        
+      });
+      if (check1 || check2) 
+      {
+        RED.notify("The input variables includes some target attributes, this can break the output ", "error");
+      }
+    },
+    outputLabels: function () {
+      return "X: " + this.xAttr + " -- y: " + this.yAttr;
+    },
+    button: {
+      enabled: function () {
+        return true;
+      },
+      onclick: function () {
+        var node = this;
+        $.ajax({
+          url: "inject/" + this.id,
+          type: "POST",
+          contentType: "application/json; charset=utf-8",
+          success: function (resp) {
+            console.log("SUCESSS", resp);
+          }
+        });
+      },
+
+    },
+    oneditprepare: function (msg) {
+      let AITENEA_URL = "";
+      let AUTH_TOKEN = "";
+      let auth = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                getAllIndex();
+
+                if (node.index != "") {
+                  $("#node-input-index").val(node.index);
+                  getIndexAttributes(node.index);
+                } 
+              }
+            });
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-auth").change(function () {
+        if (initialized) {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                getAllIndex();
+                if (node.index != "") {
+                $("#node-input-index").val(node.index);
+                  getIndexAttributes(node.index);
+                }
+              }
+            });
+          }
+        }
+      });
+
+      $("#node-input-index").change(function () {
+        const index = $("#node-input-index").val();
+        if (auth != "" && AITENEA_URL != "") {
+          if (index.length > 0) {
+            getIndexAttributes(index);
+          }
+        }
+      });
+
+      $("#node-input-button-csv").click(function () {
+        if (initialized) {
+          const fileName = $("#node-input-fileName").val();
+          const file = $("#node-input-csv-file").prop('files')[0];
+
+          if (auth != "" && AITENEA_URL != "") {
+            if (fileName.length > 0 && file != undefined) {
+              $.when(uploadCSV()).then(function () {
+                if (AUTH_TOKEN != "") {
+                  // Ocultar valores antes de la actualización
+                  $("#node-input-x-attr")
+                    .find("option")
+                    .remove()
+                    .end()
+                    .append('<option value="all" selected>All Attributes</option>')
+                    .val();
+                  $("#node-input-y-attr")
+                    .find("option")
+                    .remove()
+                    .end()
+                    .append('<option value="none" selected>None Attributes</option>')
+                    .val();
+                  $(".node-input-attr").hide()
+                  $(".node-input-attr").hide()
+
+                  // Recargar indices
+                  getAllIndex();
+                }
+              });
+            }
+          }
+        }
+      });
+
+      function setAuth() {
+        let selected_auth = $("#node-input-auth")
+          .children("option:selected")
+          .attr("value");
+        if (selected_auth != "_ADD_") {
+          if (selected_auth != null) {
+            node.auth = selected_auth;
+          } else {
+            node.auth = $("#node-input-auth")
+              .children()
+              .first()
+              .attr("value");
+          }
+        }
+
+        if (node.auth != "") {
+          auth = RED.nodes.node(node.auth);
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function login() {
+        let dfd = jQuery.Deferred();
+        const data = {
+          username: auth.user,
+          password: auth.password,
+        };
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/auth/login/`,
+          method: "POST",
+          data: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        })
+        .done(function (json_data) {
+          AUTH_TOKEN = json_data["token"];
+          dfd.resolve();
+        })
+        .fail(function (jqXHR, textStatus) {
+          $(".csv-index").hide();
+          $(".csv-attr").hide();
+          $(".upload-csv").hide();
+          console.error(jqXHR.responseText);
+          if (jqXHR.responseJSON.hasOwnProperty("non_field_errors")) {
+            showMessage("Incorrect username or password.", "warning");
+          }
+
+          initialized = true;
+          dfd.fail();
+        });
+
+        return dfd.promise();
+      }
+
+      function getAllIndex() {
+        $("#node-input-index")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="" selected>Select a Index</option>')
+          .val();
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/csv/`,
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+          method: "GET",
+        })
+        .done(function (response) {
+          $.each(response, function (key, value) {
+            $("#node-input-index").append(
+              $("<option></option>").attr("value", value).text(value)
+            );
+          });
+          $(".select-index").show();
+          $(".upload-csv").show();
+
+          if (node.index != "") {
+            $(".node-input-attr").show();
+            $(".query").show();
+            $('#node-input-index option[value="' + node.index + '"]').prop(
+              "selected",
+              "selected"
+            );
+          }
+        })
+        .always(function () {
+          initialized = true;
+        });
+      }
+
+      function getIndexAttributes(index) {
+        $("#node-input-x-attr")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="all" selected>All Attributes</option>')
+          .val();
+        $("#node-input-y-attr")
+          .find("option")
+          .remove()
+          .end()
+          .append('<option value="none" selected>None Attributes</option>')
+          .val();
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/csv/${index}/`,
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+          method: "GET",
+        }).done(function (response) {
+          $.each(response, function (key, value) {
+            $("#node-input-x-attr").append(
+              $("<option></option>").attr("value", value).text(value)
+            );
+            $("#node-input-y-attr").append(
+              $("<option></option>").attr("value", value).text(value)
+            );
+          });
+          $(".csv-attr").show();
+
+          if (node.index != "") {
+            $("#node-input-x-attr").val(node.xAttr).change();
+            $("#node-input-y-attr").val(node.yAttr).change();
+          }
+        })
+        .always(function () {
+          initialized = true;
+        })
+        .fail(function (jqXHR, textStatus) {
+          $(".csv-attr").hide();
+          console.error(jqXHR.responseText);
+          if (jqXHR.responseJSON.hasOwnProperty("error")) {
+            showMessage(jqXHR.responseJSON.error, "warning");
+          }
+        })
+      }
+
+      function uploadCSV() {
+        let dfd = jQuery.Deferred();
+        const fileName = $("#node-input-fileName").val();
+        const file = $("#node-input-csv-file").prop('files')[0];
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/csv/`,
+          method: "POST",
+          data: file,
+          processData: false,
+          headers: { 
+            "Authorization": `Token ${AUTH_TOKEN}`,
+            "Content-Type": "text/csv" ,
+            "Content-Disposition": `attachment; filename=${fileName}.csv`,
+          },
+          beforeSend: function(xhr) {
+            $(".upload-status").hide();
+            $("#upload-loading").show();
+          }
+        })
+        .done(function (json_data) {
+          $(".upload-status").hide();
+          $("#upload-finished").show();
+          dfd.resolve();
+        })
+        .fail(function (jqXHR, textStatus) {
+          console.error(jqXHR.responseText);
+          if (jqXHR.responseJSON.hasOwnProperty("error")) {
+            showMessage(jqXHR.responseJSON.error, "warning");
+          }
+
+          $(".upload-status").hide();
+          $("#upload-error").show();
+          dfd.fail();
+        });
+      }
+
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="From-CSV">
+  <div class="form-row">
+    <label for="node-input-auth"><i class="fa fa-globe"></i> Auth</label>
+    <input type="text" id="node-input-auth" placeholder="Auth" />
+  </div>
+
+  <div class="form-row select-index csv-index" hidden>
+    <label for="node-input-index">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select a Index
+    </label>
+    <select id="node-input-index">
+      <option value="" selected>Select a Index</option>
+    </select>
+  </div>
+  <div class="form-row select-data" hidden>
+    <p>*Done to finish</p>
+  </div>
+  <div class="form-row node-input-attr csv-attr" hidden>
+    <label for="node-input-x-attr">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select X Attributes
+    </label>
+    <select id="node-input-x-attr" multiple>
+      <option value="all" selected>All Attributes</option>
+    </select>
+    <br /><br />
+    <label for="node-input-y-attr">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select y Attributes
+    </label>
+    <select id="node-input-y-attr" multiple>
+      <option value="none" selected>None Attributes</option>
+    </select>
+  </div>
+
+  <hr />
+  <div class="form-row upload-csv" hidden>
+    <label for="node-input-fileName"
+      ><i class="fa fa-pencil" aria-hidden="true"></i> Index Name</label
+    >
+    <input
+      id="node-input-fileName"
+      type="text"
+      placeholder="New index name"
+      pattern="^[a-zA-Z0-9-_]+$"
+    />
+  </div>
+  <div class="form-row upload-csv input-csv-file" hidden>
+    <label for="node-input-csv-file">
+      <i class="fa fa-pencil" aria-hidden="true"></i> Select File
+    </label>
+    <input type="file" id="node-input-csv-file" accept=".csv">
+  </div>
+  <div class="form-row upload-csv input-button-csv" hidden>
+    <button type="button" id="node-input-button-csv">
+      Upload CSV
+    </button>
+    <span id="upload-loading" class="upload-status" hidden>
+      Uploading...
+    </span>
+    <span id="upload-finished" class="upload-status" hidden>
+      Upload finished
+    </span>
+    <span id="upload-error" class="upload-status" hidden>
+      Upload error
+    </span>
+  </div>
+  <!-- <div class="form-row select-index" hidden>
+    <button id="save-index">Search Data</button>
+  </div> -->
+</script>
+
+<script type="text/html" data-help-name="From-CSV">
+  <p>
+    This node allows you to extract data from an CSV index to use in
+    AItenea algorithms.
+  </p>
+  <h3>Details</h3>
+  <p>
+    In first screen you must provide AITenea connection data to be able
+    to check indexes or make queries.
+  </p>
+  <p>
+    Second screen allows you to select the X values and the y values after that
+    select the index you want. This screen also offers a menu to upload a new 
+    index as a CSV file, this requires the user to input a new index name.
+  </p>
+  <p>Finally, click on 'Done'.</p>
+</script>

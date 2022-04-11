@@ -1,0 +1,16 @@
+{
+    "name": "pline-set",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "node-red" : {
+      "nodes": {
+          "pline-box": "pline-set.js"
+      }
+    },
+    "author": "Gonzalo Martínez",
+    "license": "ISC"
+  }

@@ -1,0 +1,57 @@
+#red-ui-header {
+    background-color: #D2D2D2;
+}
+#red-ui-header span.red-ui-header-logo span  {
+    font-family: "Montserrat", Montserrat;
+    color: rgb(64, 64, 64);
+    font-size: 25px  !important;
+}
+#red-ui-header .button, 
+#red-ui-header .button:hover {
+    color: #555;
+    border-left: 2px solid #D2D2D2;
+    border-right: 2px solid #D2D2D2;
+}
+#red-ui-header .red-ui-deploy-button {
+    background: #1D6589;
+    color: #eee;
+}
+.red-ui-workspace-chart-background {
+    fill:  #D2D2D2;
+}
+.red-ui-palette-content {
+    background: #c4d0d6;
+    padding: 3px;
+}
+#red-ui-header ul.red-ui-menu-dropdown {
+    background: #D2D2D2;
+    border: 2px solid #121212;
+}
+#red-ui-header ul.red-ui-menu-dropdown li a {
+    color: #555;
+    padding: 3px 40px;
+}
+#red-ui-header ul.red-ui-menu-dropdown > li:hover > a {
+    background: #a3a3a3 !important;
+}
+#red-ui-header .red-ui-menu-dropdown-submenu > a::before {
+    border-right-color: #555;
+}
+.red-ui-palette-header {
+    position: relative;
+    background:  #1D6589;
+    color: #D2D2D2;
+    cursor: pointer;
+    text-align: left;
+    padding: 9px;
+    font-weight: bold;
+    padding-left: 30px;
+    overflow: hidden;
+    user-select: none;
+}
+#red-ui-header span.red-ui-header-logo img {
+    height: 46px;
+}
+#red-ui-header #usermenu-item-username > .red-ui-menu-label {
+    color: #555;
+}

@@ -1,0 +1,501 @@
+<script type="text/javascript">
+  RED.nodes.registerType("Pline-step", {
+    category: "AItenea Smart Pipe",
+    color: "#13B2BD",
+    defaults: {
+      auth: {
+        value: "",
+        type: "aitenea-conf",
+      },
+      classType: {
+        value: "",
+        required: true,
+      },
+      className: {
+        value: "",
+        required: true,
+      },
+      moduleName: {
+        value: "",
+        required: true,
+      },
+      optionsvals: {
+        value: "{}",
+        required: true,
+      },
+      geneticparametersvals: {
+        value: "{}",
+        required: true,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "function.png",
+    label: function () {
+      return (
+        "Pline-step-" + this.classType + "-" + this.className || "Pline-step"
+      );
+    },
+    inputLabels: function () {
+      return "From Data Pline Set or Pline Step";},
+    outputLabels: function () {
+      return "To Pline Step, Data Destination or Run";},
+    oneditprepare: function (msg) {
+      let data = [
+        "aitenea_ai",
+        "aitenea_transform",
+        "external_ai",
+        "external_transform",
+      ];
+      let AITENEA_URL = "";
+      let AUTH_TOKEN = "";
+      let auth = "";
+      let initialized = false;
+      let node = this;
+
+      $(document).ready(function () {
+        if (node.options != "") {
+          $("#node-input-options").val(node.options);
+        }
+
+        $.each(data, function (key, value) {
+          $("#node-input-classType").append(
+            $("<option></option>").attr("value", value).text(value)
+          );
+        });
+
+        $.when(
+          $.getJSON("getAiteneaUrl", function (data) {
+            AITENEA_URL = data;
+          })
+        ).then(function () {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                loadData();
+              }
+            });
+          } else {
+            initialized = true;
+          }
+        });
+      });
+
+      $("#node-input-auth").change(function () {
+        if (initialized) {
+          setAuth();
+
+          if (auth != "" && AITENEA_URL != "") {
+            $.when(login()).then(function () {
+              if (AUTH_TOKEN != "") {
+                loadData();
+              }
+            });
+          }
+        }
+      });
+
+      $("#node-input-classType").change(function () {
+        const class_type = $("#node-input-classType")
+          .children("option:selected")
+          .val();
+        $.when(loadClassNameOptions(class_type)).then(function () {
+          $(
+            '#node-input-className option[value="' + node.className + '"]'
+          ).prop("selected", "selected");
+          const pk = $("#node-input-className")
+            .children("option:selected")
+            .attr("pk");
+          if (pk != "" && pk != undefined) {
+            loadClassOptions(pk);
+          } else {
+            $("#options").empty();
+            $("#genetic-parameters").empty();
+          }
+        });
+      });
+
+      $("#node-input-className").change(function () {
+        const pk = $(this).children("option:selected").attr("pk");
+        if (pk != "" && pk != undefined) {
+          loadClassOptions(pk);
+        } else {
+          $("#options").empty();
+          $("#genetic-parameters").empty();
+        }
+      });
+
+      function setAuth() {
+        let selected_auth = $("#node-input-auth")
+          .children("option:selected")
+          .attr("value");
+        if (selected_auth != "_ADD_") {
+          if (selected_auth != null) {
+            node.auth = selected_auth;
+          } else {
+            node.auth = $("#node-input-auth").children().first().attr("value");
+          }
+        }
+
+        if (node.auth != "") {
+          auth = RED.nodes.node(node.auth);
+        }
+      }
+
+      function showMessage(text, type = "error") {
+        let myNotification = RED.notify(text, {
+          modal: true,
+          fixed: true,
+          type: type,
+          buttons: [
+            {
+              text: "Ok",
+              class: "primary",
+              click: function (e) {
+                myNotification.close();
+              },
+            },
+          ],
+        });
+      }
+
+      function login() {
+        let dfd = jQuery.Deferred();
+        const data = {
+          username: auth.user,
+          password: auth.password,
+        };
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/auth/login/`,
+          method: "POST",
+          data: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        })
+          .done(function (json_data) {
+            AUTH_TOKEN = json_data["token"];
+
+            $(".ml-classes").show();
+
+            dfd.resolve();
+          })
+          .fail(function (jqXHR, textStatus) {
+            $(".ml-classes").show();
+            console.error(jqXHR.responseText);
+            if (jqXHR.responseJSON.hasOwnProperty("non_field_errors")) {
+              showMessage("Incorrect username or password.", "warning");
+            }
+
+            initialized = true;
+            dfd.fail();
+          });
+
+        return dfd.promise();
+      }
+
+      function loadData() {
+        if (node.classType != "") {
+          $(
+            '#node-input-classType option[value="' + node.classType + '"]'
+          ).prop("selected", "selected");
+          $.when(loadClassNameOptions(node.classType)).then(function () {
+            $(
+              '#node-input-className option[value="' + node.className + '"]'
+            ).prop("selected", "selected");
+            const pk = $("#node-input-className")
+              .children("option:selected")
+              .attr("pk");
+            if (pk != "" && pk != undefined) {
+              $.when(loadClassOptions(pk)).then(function () {
+                loadLastOptionVals(node.optionsvals);
+                loadLastGeneticParametersVals(node.geneticparametersvals);
+              });
+            } else {
+              $("#options").empty();
+              $("#genetic-parameters").empty();
+            }
+          });
+        }
+      }
+
+      function loadClassNameOptions(classType) {
+        let dfd = jQuery.Deferred();
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/classes/?type=` + classType,
+          method: "GET",
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+        })
+          .done(function (response) {
+            $("#node-input-className").empty();
+            $("#node-input-className").append(
+              '<option value="" selected>Select a Class Name </option>'
+            );
+            $.each(response, function (key, value) {
+              $("#node-input-className").append(
+                $("<option></option>")
+                  .attr("value", value.class_name)
+                  .attr("pk", value.id)
+                  .text(value.class_name)
+              );
+            });
+            dfd.resolve();
+          })
+          .always(function () {
+            initialized = true;
+          });
+
+        return dfd.promise();
+      }
+
+      function loadClassOptions(pk) {
+        let dfd = jQuery.Deferred();
+
+        $.ajax({
+          url: `${AITENEA_URL}/api/classes/?id=` + pk,
+          method: "GET",
+          headers: { "Authorization": `Token ${AUTH_TOKEN}` },
+        }).done(function (response) {
+          const module_name = JSON.stringify(response[0].module_name);
+          $("#node-input-moduleName").val(
+            JSON.stringify(response[0].module_name)
+          );
+
+          const html_options = JSON.parse(response[0].html_options);
+          $("#options").empty();
+
+          const html_genetic_parameters = JSON.parse(
+            response[0].html_genetic_parameters
+          );
+          $("#genetic-parameters").empty();
+
+          if (html_options.length > 0) {
+            $("#options").append(
+              '<div> <label> <i class="fa fa-pencil" aria-hidden="true"></i>Class Options</label> </div>'
+            );
+            $.each(html_options, function (index, value) {
+              $("#options").append(value);
+            });
+          }
+
+          if (html_genetic_parameters.length > 0) {
+            $("#genetic-parameters").append(
+              '<div> <label> <i class="fa fa-pencil" aria-hidden="true"></i>Fitness Parameters</label> </div>'
+            );
+            $.each(html_genetic_parameters, function (index, value) {
+              $("#genetic-parameters").append(value);
+            });
+          }
+
+          dfd.resolve();
+        });
+
+        return dfd.promise();
+      }
+
+      function loadLastOptionVals() {
+        if (node.optionsvals != "{}") {
+          const parsed_optionsvals = JSON.parse(node.optionsvals);
+
+          for (prop in parsed_optionsvals) {
+            const selector = $("#" + prop);
+
+            if (selector.is("input")) {
+              const input_type = selector.attr("type");
+
+              switch (input_type) {
+                case "checkbox":
+                  selector.prop("checked", parsed_optionsvals[prop]);
+                  break;
+                case "text":
+                case "number":
+                  selector.val(parsed_optionsvals[prop]);
+                  break;
+              }
+            }
+
+            if (selector.is("select")) {
+              $(
+                "#" +
+                  prop +
+                  ' option[value="' +
+                  parsed_optionsvals[prop] +
+                  '" i]'
+              ).attr("selected", true);
+            }
+          }
+        }
+      }
+
+      function loadLastGeneticParametersVals() {
+        if (node.geneticparametersvals != "{}") {
+          const parsed_geneticparametersvals = JSON.parse(
+            node.geneticparametersvals
+          );
+
+          for (prop in parsed_geneticparametersvals) {
+            const selector = $("#" + prop);
+
+            if (selector.is("select")) {
+              $(
+                "#" +
+                  prop +
+                  ' option[value="' +
+                  parsed_geneticparametersvals[prop] +
+                  '" i]'
+              ).attr("selected", true);
+            }
+          }
+        }
+      }
+    },
+    oneditsave: function () {
+      let options_items = {};
+      let genetic_parameters_items = {};
+
+      try {
+        $("#options")
+          .children("input")
+          .each(function () {
+            let id = $(this).attr("id");
+            let value = "";
+
+            try {
+              value = parseFloat($(this).val());
+              if (Number.isNaN(value)) {
+                value = $(this).val();
+              }
+            } catch (error) {
+              console.log(error);
+              value = $(this).val();
+            }
+
+            let type = $(this).attr("type");
+            if (type == "checkbox") {
+              options_items[id] = $(this).is(":checked");
+            } else {
+              options_items[id] = value;
+            }
+          });
+      } catch (error) {
+        console.log(error);
+      }
+
+      try {
+        $("#options")
+          .children("select")
+          .each(function () {
+            let id = $(this).attr("id");
+            let value = "";
+
+            try {
+              value = parseFloat($(this).val());
+              if (Number.isNaN(value)) {
+                value = $(this).val();
+              }
+            } catch (error) {
+              console.log(error);
+              value = $(this).val();
+            }
+
+            if (value == "True" || value == "False") {
+              value = value == "True";
+            }
+            options_items[id] = value;
+          });
+      } catch (error) {
+        console.log(error);
+      }
+
+      try {
+        $("#genetic-parameters")
+          .children("select")
+          .each(function () {
+            let id = $(this).attr("id");
+            let value = "";
+
+            try {
+              value = parseFloat($(this).val());
+              if (Number.isNaN(value)) {
+                value = $(this).val();
+              }
+            } catch (error) {
+              console.log(error);
+              value = $(this).val();
+            }
+
+            genetic_parameters_items[id] = value;
+          });
+      } catch (error) {
+        console.log(error);
+      }
+
+      $("#node-input-optionsvals").val(JSON.stringify(options_items));
+      $("#node-input-geneticparametersvals").val(
+        JSON.stringify(genetic_parameters_items)
+      );
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="Pline-step">
+  <div class="form-row">
+    <label for="node-input-auth"><i class="fa fa-globe"></i> Auth</label>
+    <input type="text" id="node-input-auth" placeholder="Auth" />
+  </div>
+
+  <div class="form-row select-class-type ml-classes" hidden>
+    <label for="node-input-classType"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Select Class Type</label
+    >
+    <select id="node-input-classType">
+      <option value="" selected>Select a Class Type</option>
+    </select>
+  </div>
+
+  <div class="form-row select-class-name ml-classes" hidden>
+    <label for="node-input-className"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Select Class Name</label
+    >
+    <select id="node-input-className">
+      <option value="" selected>Select a Class Name</option>
+    </select>
+  </div>
+
+  <div class="form-row modulename" hidden>
+    <input id="node-input-moduleName" name="node-input-moduleName" />
+  </div>
+
+  <div class="form-row options-input" id="options">
+    <!--<label> <i class="fa fa-pencil" aria-hidden="true"></i>Class Options</label>-->
+  </div>
+
+  <div class="form-row optionsvals" hidden>
+    <input id="node-input-optionsvals" name="node-input-optionsvals" />
+  </div>
+
+  <div class="form-row genetic-parameters-input" id="genetic-parameters">
+    <!--<label> <i class="fa fa-pencil" aria-hidden="true"></i>Class Options</label>-->
+  </div>
+
+  <div class="form-row geneticparametersvals" hidden>
+    <input
+      id="node-input-geneticparametersvals"
+      name="node-input-geneticparametersvals"
+    />
+  </div>
+
+  <div class="form-row select-data" hidden>
+    <p>*Done to finish</p>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="Pline-step">
+  <p>Set each step of a Pline that user wants to train.</p>
+  <h3>Details</h3>
+  <p>AItenea class type must be selected in first field.</p>
+  <p>AItenea class name must be selected in second field.</p>
+  <p>Class Options will appear once the two previous options are setted.</p>
+</script>
