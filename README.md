@@ -1,18 +1,10 @@
-------------------------------------------------------------------
-       d8888 8888888 88888888888                                  
-      d88888   888       888                                      
-     d88P888   888       888                                      
-    d88P 888   888       888   .d88b.  88888b.   .d88b.   8888b.  
-   d88P  888   888       888  d8P  Y8b 888 "88b d8P  Y8b     "88b 
-  d88P   888   888       888  88888888 888  888 88888888 .d888888
- d8888888888   888       888  Y8b.     888  888 Y8b.     888  888
-d88P     888 8888888     888   "Y8888  888  888  "Y8888  "Y888888
+# AItenea
+
 
 A fun and efficient ML framework
------------------------------------------------------------------
 
 ---------------
-1. INTRODUCCIóN
+1. INTRODUCCIÓN
 ---------------
 
 AITENEA es un framework de machine learning (ML) de propósito general cuya principal virtud se encuentra en su capacidad para convertir cualquier algoritmo implementado  en un elemento disponible en una capa de visualización para una programación visual mediante flujos. Con esta filosofía resulta mucho más directo pasar de una implementación teórica o de prueba de concepto a un bloque de funcionalidad preparado para la producción. Desde  un punto de vista formal y siguiendo el estándar CRIPS-DM, AITENEA unifica las fases de preparación y transformación de datos, modelado, evaluación y despliegue, incorporando al mismo tiempo un mecanismo para añadir en esta cadena algoritmos nuevos desde su formulación matemática. De forma más descriptiva el objetivo de AITENEA es poder disponer de un sistema capaz de poner en producción y/o ensayar modelos de ML sin necesidad de hacer codificación alguna, todo ello de forma muy intuitiva. Además el diseño de AITENEA facilita la incorporación rápida de nuevos algoritmos por lo que no deberían existir límites evidentes al crecimiento y ampliación de métodos, por novedosos que estos resulten. Para alcanzar estos objetivos AITENEA se compone de tres capas o niveles y que el presente documento irá describiendo en los sucesivos apartados. A modo de introducción diremos que estos tres niveles son:
