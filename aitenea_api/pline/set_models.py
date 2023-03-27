@@ -163,18 +163,12 @@ def save_model(info_class_dict, model):
             if old is None and value["options"] is None:
                 continue
             else:
-                if old is None:
-                    pass
-                else:
-                    for new_dict, old_dict in zip(
-                            value["options"].items(),
-                            old.items()):
-                        if ((new_dict[0] == old_dict[0]) and (new_dict[1] == old_dict[1])):
-                            break
-                        else:
-                            one_class.options = value["options"]
-                            one_class.save()
-                            logger.debug("Change %s options, update info", key)
+                one_class.options = value["options"]
+                one_class.html_options = json.dumps(value["html_options"])
+                one_class.genetic_parameters = value["genetic_parameters"]
+                one_class.html_genetic_parameters = json.dumps(value["html_genetic_parameters"])
+                one_class.save()
+                logger.debug("Change %s options, update info", key)
 
 
 def generate_html(options):

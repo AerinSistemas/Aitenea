@@ -3,7 +3,7 @@ from django.urls import path
 
 from rest_framework import routers
 from .api import PlineViewSet, StepViewSet, AiteneaClassViewSet, CSVViewset
-from pline.views import elastic_get_index, data_evaluation
+from pline.views import elastic_get_index, data_evaluation, nan_values, sql_get_db
 
 
 app_name = 'pline'
@@ -17,6 +17,8 @@ urlpatterns = [
     path('classes/<int:pk>/', AiteneaClassViewSet.as_view({ 'get': 'retrieve'})),
     path('elastic_get_index/', elastic_get_index),
     path('data_evaluation/', data_evaluation),
+    path('nan_values/', nan_values),
+    path('sql_get_db/', sql_get_db),
 ]
 
 urlpatterns += router.urls

@@ -18,6 +18,7 @@ from aitenea_core import perpetuity
 import os
 from pathlib import Path
 import csv
+import dask.dataframe as dd
 
 # Log configuration
 from logsconf.log_conf import logging_config
@@ -364,7 +365,7 @@ class CSVViewset(viewsets.ViewSet):
     permission_classes = [
         permissions.IsAuthenticated
     ]
-
+    
     def list(self, request):
         response_body = list()
         csv_folder_path = Path('../data/csv/')
@@ -379,7 +380,7 @@ class CSVViewset(viewsets.ViewSet):
     def create(self, request):
         response_body = dict()
         file = request.FILES.get('file')
-
+        
         # Eliminamos cualquier path que pueda haber en el nombre del archivo y generamos la ruta de destino
         filename = os.path.basename(file.name)
         csv_path = Path('../data/csv/'+filename)
@@ -413,7 +414,6 @@ class CSVViewset(viewsets.ViewSet):
                     response = JsonResponse(response_body, status=status.HTTP_400_BAD_REQUEST)
                     os.remove(csv_path)
                     return response
-
         response = JsonResponse(response_body, status=status.HTTP_200_OK)
         return response
 
@@ -422,6 +422,8 @@ class CSVViewset(viewsets.ViewSet):
 
         csv_path = Path('../data/csv/'+pk+'.csv')
         if os.path.isfile(csv_path):
+            dataframe = dd.read_csv(csv_path,sep= None, engine='python')
+            dd_types = list(dataframe.dtypes.values.astype('str'))
             with open(csv_path, newline='') as f:
                 sniffer = csv.Sniffer()
                 try:
@@ -432,7 +434,9 @@ class CSVViewset(viewsets.ViewSet):
                     # Devolver cabecera
                     reader = csv.reader(f, dialect)
                     row1 = next(reader)
-                    response_body = list(row1)
+                    response_body = dict()
+                    response_body['attributes'] = list(row1)
+                    response_body['types']= dd_types
                     response = Response(response_body, status=status.HTTP_200_OK)
                 except Exception as e:
                     response_body = dict()
@@ -441,6 +445,5 @@ class CSVViewset(viewsets.ViewSet):
         else:
             response_body = dict()
             response_body["error"] = "Missing CSV file."
-            response = JsonResponse(response_body, status=status.HTTP_400_BAD_REQUEST)
-                    
+            response = JsonResponse(response_body, status=status.HTTP_400_BAD_REQUEST)                       
         return response
