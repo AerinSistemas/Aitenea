@@ -57,10 +57,10 @@ class RandomForestRegress(BaseClassAI):
     options = {
         'n_estimators':
             {"type": "int", "range": [1, None, 1],
-             "default": 100, "gen": True},
-            'max_depth':
+             "default": 500, "gen": True},
+        'max_depth':
             {"type": "int", "range": [0, None, 1],
-             "default": 1, "gen": True},
+             "default": 0, "gen": True},
         "min_samples_leaf":
             {"type": "int", "range": [1, None, 1],
              "default": 1, "gen": False},
@@ -79,7 +79,7 @@ class RandomForestRegress(BaseClassAI):
         class_options = {
             'n_estimators':
             {"type": "int", "range": None,
-             "default": 100, "gen": True},
+             "default": 500, "gen": True},
             'max_depth':
             {"type": "int", "range": None,
              "default": 0, "gen": True},
