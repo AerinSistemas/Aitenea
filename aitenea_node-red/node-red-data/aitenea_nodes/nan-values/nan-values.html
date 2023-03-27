@@ -1,0 +1,170 @@
+<script type="text/javascript">
+  RED.nodes.registerType("NAN Values",{
+      category: 'AItenea Data Cleaning',
+      color: '#3FADB5',
+      align: 'right',
+      defaults: {
+          timeout: {value: "30000"},
+          subset: {value: "None"},
+          how: {value: 'any'},  
+          runselect: {
+            value: 'delete',
+            required: true,   
+          },
+          axis: {value: 'index'},
+          method: {value: 'backfill'},     
+      },
+      inputs:1,
+      outputs:1,
+      icon: function(){        
+        return "font-awesome/fa-rocket"        
+      },
+      label: function() {
+          return "NAN Values";
+      },
+      inputLabels: function(){
+        return "From CSV or manual data, Elasticsearch, Data evaluation, or Elastic Destination "
+      },
+      outputLabels: function(){
+        return "To Pline set or Debug"
+      },
+      oneditprepare: function(msg){
+        let initialized = true;
+        let node = this;
+        $(document).ready(function(){
+          if (node.runselect.includes("delete")){            
+            $(".axis").show();
+            $(".how").show();
+            $(".timeout").show();
+            $(".subset").show();
+            $(".method").hide();
+          }
+          else{
+            $(".how").hide();
+            $(".timeout").show();
+            $(".subset").hide();
+            $(".axis").show();
+            $(".method").show();
+          }
+        });
+
+        $("#node-input-runselect").change(function(){          
+          if (true){
+            const action = $(this).children("option:selected").attr("value");
+            console.log(action);
+            if (action.includes("delete")){
+              $(".axis").show();
+              $(".how").show();  
+              $(".timeout").show();
+              $(".subset").show();
+              $(".method").hide();
+            }
+            else  {
+              $(".how").hide();
+              $(".timeout").show();
+              $(".subset").hide();
+              $(".axis").show();
+              $(".method").show();
+            }
+          }
+          });        
+      }
+  });
+</script>
+  
+<script type="text/html" data-template-name="NAN Values">
+  <div class="form-row">
+    <label for="node-input-timeout"><i class="fa fa-globe"></i>Timeout (ms)</label>
+    <input type="number" id="node-input-timeout" step="1000" min="3000" value="30000"/>
+  </div>
+
+  <div class="form-row runselect cleaning data">
+      <label for="node-input-runselect"><i class="fa fa-pencil"></i>Election:</label>
+      <select id="node-input-runselect">
+        <option value="delete">Delete NaN values</option>
+        <option value="replace">Replace NaN values</option>
+      </select>      
+  </div>
+  
+  <div  class="form-row axis replace nan" hidden >
+    <label for="node-input-axis">
+      <i class="fa fa-tag" aria-hidden="true"></i>Axis:</label>
+      <select id="node-input-axis">
+        <option value="index">Index</option>
+        <option value="columns">Columns</option>
+      </select>
+  </div>
+
+  <div class="form-row subset nan" hidden>
+    <label for="node-input-subset"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>Subset:</label
+    >
+    <input type="text" id="node-input-subset" />
+  </div>
+
+  <div  class="form-row how delete nan" hidden >
+    <label for="node-input-how">
+      <i class="fa fa-tag" aria-hidden="true"></i>Presence of Nan values:</label>
+      <select id="node-input-how">
+        <option value="any">Any NaN value</option>
+        <option value="all">All NaN values</option>
+      </select>
+  </div>  
+
+  <div  class="form-row method replace nan" hidden >
+    <label for="node-input-method">
+      <i class="fa fa-tag" aria-hidden="true"></i>Method to use:</label>
+      <select id="node-input-method">
+        <option value="backfill">backfill</option>
+        <option value="ffill">ffill</option>    
+      </select>
+  </div>
+ </script>
+
+<script type="text/html" data-help-name="NAN Values">
+  <!--This script is used to define the data help of the nan-values node-->
+  <p>
+    This node handles NaN values either removing or replacing them.
+    <hr>
+    This node needs a Timeout to run. This nodes can has as inputs data from CSV, ElasticSearch
+    or manual. Also, as inputs can be another nodes such as data evaluation or destination elastic.
+    This node contains two principal parts defined such as delete or replace NaN values.
+
+    <h1 style="color:black;"><b>1. Delete NaN values</b></h1>
+    <p>Delete approach is only restricted to the use in rows. The default values are 'None' and 'Any NaN value' 
+      for 'Subset' and 'Presence of Nan values' respectively.
+      This option contains two fields that are more detailed as follows:
+      <ul>
+        <li><b><i>axis:</i></b> This field contains two options such as 'Index' and 'Columns'.
+          In this option, axis: index(rows) or columns can be selected where the user want to delete NaN values</li>
+        <li><b><i>subset:</i></b> In this field, the column names to be used in the delete task of NaN values 
+          can be defined. The column names should be written as they appear in the dataframe of origin.
+          At the same time, if there are several colums to use, the names of them should be written separated
+          by comma avoiding spaces between them (e.g. column1,column2).</li>
+        <li><b><i>presence of nan values:</i></b> This field contains two options such 
+          as 'Any NaN value' and 'All NaN values'. If the first option is selected, it means 
+          that there is at least one NaN value in all the row, the entire row will be deleted. On the other hand, 
+          if the second option is selected, all the values in the row must be a NaN value to delete it</li>        
+      </ul>
+    </p>
+
+    <h2 style = "color:black"><b>2. Replace NaN values</b></h2>
+    <p>The default values are 'Index' and 'backfill' for 'Axis' and 
+      'Method to use' respectively. This option also contains two fields that are more detailed as follows: <br>
+      <ul>
+        <li><b><i>axis:</i></b> This field contains two options such as 'Index' and 'Columns'.
+        In this option, axis (rows) or columns can be selected where the user want to replace NaN values</li>
+        <li><b><i>method to use:</i></b> There are several methods that are explained briefly below:
+          <ul>
+            <li><b><i>ffill:</i></b> replace NaN value taking the last valid value until the next valid one.</li>
+            <li><b><i>backfill:</i></b> replace NaN value taking the next valid observation.</li>                     
+          </ul>
+        </li>        
+      </ul>   
+      The output of this node is a message if NaN values have been treated or not.
+      Also, if there is an elastic destination node to the left of Nan Values node,
+      as output there is another message that confirms if the dataframe after
+      replacement or removal of NaN values was sent to ElasticSearch.
+    </p>
+  </p>
+</script>

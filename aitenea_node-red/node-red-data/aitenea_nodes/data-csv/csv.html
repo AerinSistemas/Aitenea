@@ -9,7 +9,7 @@
       },
       fileName: {
         value: "",
-        required: false,
+        required: true,
       },
       index: {
         value: "",
@@ -280,18 +280,17 @@
           .end()
           .append('<option value="none" selected>None Attributes</option>')
           .val();
-
         $.ajax({
           url: `${AITENEA_URL}/api/csv/${index}/`,
           headers: { "Authorization": `Token ${AUTH_TOKEN}` },
           method: "GET",
         }).done(function (response) {
-          $.each(response, function (key, value) {
+          $.each(response['attributes'], function (key, value) {
             $("#node-input-x-attr").append(
-              $("<option></option>").attr("value", value).text(value)
+              $("<option></option>").attr("value", value).text(value +' - ' + response['types'][key])
             );
             $("#node-input-y-attr").append(
-              $("<option></option>").attr("value", value).text(value)
+              $("<option></option>").attr("value", value).text(value + ' - ' + response['types'][key])
             );
           });
           $(".csv-attr").show();
@@ -395,7 +394,7 @@
     <input
       id="node-input-fileName"
       type="text"
-      placeholder="New index name"
+      placeholder="Give name for file, only for UploadCSV option"
       pattern="^[a-zA-Z0-9-_]+$"
     />
   </div>

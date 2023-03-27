@@ -170,7 +170,12 @@ module.exports = function (TDATA) {
           }
         }
         else{
-        body = JSON.parse(body);
+          try{
+            body = JSON.parse(body);
+          }catch{
+            body = body.replace(/\bNaN\b/g, "null")
+            body = JSON.parse(body)
+          }
         try{
           let body_out = JSON.parse(body.out);
           body.out = body_out;

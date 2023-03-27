@@ -3,6 +3,7 @@
   RED.nodes.registerType("Data-evaluation", {
     category: "AItenea Data Cleaning",
     color: "#14E81B",
+    align: 'right',
     defaults: {
       timeout: {
         value: "30000",
@@ -11,7 +12,10 @@
     },
     inputs: 1,
     outputs: 1,
-    icon: "batch.svg",
+    //icon: "batch.svg",
+    icon: function(){        
+        return "font-awesome/fa-rocket"        
+      },
     label: function () {
       return "Data-evaluation" || this.name;
     },
@@ -47,7 +51,7 @@
       Aside from that, it shows several items that are explained as follows: <br>
       <ul>
         <li><b><i>data type X:</i></b> It shows the data type for each attribute that has defined as X attribute.</li>
-        <li><b><i>data describe X:</i></b> t shows the number of entries, mean, standard deviation, minimum value, maximum value, and the percentiles (25%, 50%, 75%).
+        <li><b><i>data describe X:</i></b> It shows the number of entries, mean, standard deviation, minimum value, maximum value, and the percentiles (25%, 50%, 75%).
            This statistical information is shown for each attribute that has defined as X attribute.</li>
         <li><b><i>data type Y:</i></b> It shows the data type for each attribute that has defined as Y attribute.</li>
         <li><b><i>data describe Y:</i></b> It shows the number of entries, mean, standard deviation, minimum value, maximum value, and the percentiles (25%, 50%, 75%).

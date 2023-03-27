@@ -1,0 +1,637 @@
+<script type = "text/javascript">
+    RED.nodes.registerType("From-SQL",{
+        category: 'AItenea Connector',
+        color: "#F8D91E",
+        align: 'left',
+        defaults:{
+            dbmanager: {
+                value: "",
+                required: true,
+            },
+            server: {
+                value: "",
+                type: "sqldb-conf",
+                required: true
+            },
+            index: {
+                value: "",
+                required: true,
+            },
+            xAttr: {
+                value: "",
+                required: true,
+            },
+            yAttr: {
+                value: "",
+                required: true,
+            },
+            query: {
+                value: "",
+                required: false,
+            },
+            advanced: {                
+                value: "",
+                required: true,
+            },
+            search: {
+                value: "",
+                required: false,
+            }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: function(){
+            return "db.png"
+        },
+        label: function(){
+            return "From - SQL - " + this.dbmanager || "From - SQL"  
+        },
+        inputLabels: function(){
+            return "From inject node"
+        },
+        outputLabels: function(){
+            return "To analyze"
+        },
+        oneditsave: function () {            
+            let node = this;
+            node.xAttr = $("#node-input-x-columns").val();
+            node.yAttr = $("#node-input-y-columns").val();
+            node.rawAttr = $("#node-input-raw-columns").val();
+            node.query = $("#node-input-query").val();
+            node.advanced = $("#node-input-advanced").val();            
+            node.index = $("#node-input-index").val();
+            node.search = $("#node-input-search").val();
+            let check1 = (node.xAttr == 'all' && node.yAttr != 'none');
+            let check2 = false;
+            node.yAttr.forEach(element => {
+                if (node.xAttr.includes(element)){
+                    check2 = check2 || true;
+                }
+        
+            });
+            if (check1 || check2){
+                RED.notify("Warning: target variable has been included in predictor variables", "error");
+            }
+      
+        },
+        oneditprepare: function(msg){
+            let AITENEA_URL = "";
+            let server = "";
+            let initialized = false;
+            let node = this;
+            let indicator = false;
+            let check_error = false;
+            let init_advanced = true;
+            let init_search = false;
+            var click_search = false;
+            var click_test = false;
+            var attr_error = false;
+
+            $(document).ready(function(){
+                if (node.dbmanager == ""){
+                    $(".server").hide()
+                    indicator = true
+                }else{
+                    $(".server").show()
+                    indicator = true
+                    initialize_server()
+                };
+            });
+
+            $("#node-input-dbmanager").change(function(){
+                const action = $(this).children("option:selected").attr("value");                
+                node.dbmanager = action
+                if (action != "" && indicator == true){
+                    $(".server").show()
+                    initialize_server()
+                }    
+            });
+            
+            function initialize_server(){
+                $.when(
+                    $.getJSON("getAiteneaUrl", function(data){
+                        AITENEA_URL = data;
+                    })
+                ).then(function(){
+                    setServer();
+                    if (server != "" && AITENEA_URL != ""){
+                        if (node.index != ""){
+                            getAllIndex()
+                            if (node.index != ""){
+                                $("#node-input-index").val(node.index);
+                                showIndexAttributes(node.index);
+                                if (node.advanced == "no"){
+                                    getIndexAttributes(node.index)
+                                }else{
+                                    if (node.advanced == 'yes' && node.query != ""){
+                                        getIndexAttributes(node.index);
+                                        $(".sql-data").hide();                                         
+                                    }
+                                }
+                            }
+                            initialized = false;
+                        }else{
+                            getAllIndex()
+                            if (node.index == ""){
+                                $(".visualize-columns").hide();
+                                $(".advanced").hide();
+                                $(".chart").hide(); 
+                                $(".search").hide(); 
+                                $(".sql-data").hide();
+                            }
+                        }
+                    }else{                        
+                        initialized = true;
+                    }
+                });            
+            }          
+
+            $("#node-input-server").change(function(){
+                if (initialized){
+                    setServer();
+                    if (server != "" && AITENEA_URL != ""){
+                        getAllIndex();                     
+                    }                
+                }
+            });
+
+            $("#node-input-index").change(function () {
+                const index_val = $("#node-input-index").val();
+                if (server != "" && AITENEA_URL != "") {
+                    if (index_val.length > 0) {
+                        showIndexAttributes(index_val);
+                        let adv_val = $("#node-input-advanced").val()
+                        if (adv_val == 'no'){                            
+                            getIndexAttributes(index_val);
+                        }else if(adv_val == 'yes'){
+                            $(".chart").show();
+                            $(".search").show();
+                        }
+                    }
+                }
+            });
+
+            $("#node-input-query").change(function(){
+                var text = $("#node-input-query").val()
+                node.query = text
+                if (text == ""){
+                    $("#node-input-search").attr('disabled', 'disabled');  
+                    $(".sql-data").hide();
+                }else{
+                    $("#node-input-search").attr('disabled', false);
+                    if (node.search == true){                       
+                        getIndexAttributes()
+                    }else{
+                        $(".sql-data").hide();
+                    }
+                }
+            })
+
+            $("#node-input-advanced").change(function (){
+                const action = $(this).children("option:selected").attr("value");
+                node.advanced = action
+                var text = $("#node-input-query").val()
+                if (action == 'yes' && action != ""){
+                    $(".chart").show(); 
+                    $(".search").show();  
+                    if (text == "" && node.search != "yes"){
+                        $("#node-input-search").attr('disabled', 'disabled');
+                        $(".sql-data").hide();
+                    }else{
+                        $("#node-input-search").attr('disabled', false);
+                        init_search = true;
+                        $(".sql-data").hide();
+                    }                               
+                    init_advanced = true
+                    if ((node.search == true || node.search == "yes") && init_search == true){
+                        if (text != "" && attr_error == false){
+                            getIndexAttributes();   
+                            $(".sql-data").show();                      
+                        }                        
+                    }     
+                }else if(action == 'no' && action != ""){                   
+                    init_advanced = false
+                    const indexes = $("#node-input-index").val();
+                    getIndexAttributes(indexes);
+                    $(".chart").hide();
+                    $(".search").hide();
+                }
+            });
+
+            $("#node-input-search").click(function(){
+                click_search = true;   
+                init_search = true;   
+                click_test = true
+                node.search = click_test             
+                var text = $("#node-input-query").val()                
+                node.query = text
+                $("#node-input-search").val('yes')    
+                getIndexAttributes()   
+            })           
+
+            function setServer(){
+                let selected_server = $("#node-input-server")
+                                        .children("option:selected")
+                                        .attr("value");
+                if (selected_server != "_ADD_"){
+                    if (selected_server != null){
+                        node.server = selected_server;
+                    }else{
+                        node.server = $("#node-input-server")
+                                        .children()
+                                        .first()
+                                        .attr("value");
+                    }
+                    if (node.server != ""){
+                        server = RED.nodes.node(node.server);
+                    }
+                }
+            }
+
+            function getAllIndex(){
+                $("#node-input-index")
+                    .find("option")
+                    .remove()
+                    .end()
+                    .append('<option value = "" selected> Select a table </option>')
+                    .val();
+                let data = {
+                    source_connector: {
+                        connection: {
+                            host: server.host,
+                            database: server.database,
+                            port: server.port,
+                            user: server.user,
+                            password: server.password,
+                        },
+                        type_connector: node.dbmanager,
+                        action: "get-all-sql-tables",                        
+                    },
+                };
+                
+                $.ajax({
+                    url: `${AITENEA_URL}/api/sql_get_db/`,
+                    method: "POST",
+                    data: JSON.stringify(data),  
+                }).done(function(json_data){
+                        const data = json_data["data"];
+                        const error_msg = json_data["error"];
+                        if (error_msg != undefined){
+                            let error_notification = RED.notify(error_msg, {
+                                type: "error",
+                                fixed: true,
+                                modal: true,
+                                buttons: [{
+                                    text: "ok",
+                                    click: function(e){
+                                        error_notification.close()
+                                    }
+                                }
+                                ]
+                            });
+                            check_error = true
+                        }else{
+                            check_error = false
+                        }
+                        $.each(data, function(key, value){
+                            $("#node-input-index").append(
+                                $("<option></option>").attr("value", value).text(value)
+                        );
+                    });
+
+                    if (check_error == true){
+                        $(".select-index").hide();
+                        $(".visualize-columns").hide();
+                        $(".advanced").hide();
+                        $(".sql-data").hide();
+                        $(".chart").hide(); 
+                        $(".search").hide(); 
+
+                    }else{
+                        $(".select-index").show();
+                    }
+
+                    if (node.index != "") {
+                        let index_value = $('#node-input-index option[value="' + node.index + '"]')
+                                            .prop("selected","selected");
+                        node.index = $("#node-input-index")
+                                        .children("option:selected")
+                                        .first()
+                                        .attr("value");
+                        index = RED.nodes.node(node.index);
+                    }   
+                })
+                .always(function(){
+                    if (node.index == ""){
+                        initialized = true;
+                    }
+                }) 
+            }
+
+            function getIndexAttributes(index){
+                $("#node-input-x-columns")
+                    .find("option")
+                    .remove()
+                    .end()
+                    .append('<option value="all" selected>All Attributes</option>')
+                    .val();
+                $("#node-input-y-columns")
+                    .find("option")
+                    .remove()
+                    .end()
+                    .append('<option value="none" selected>None Attributes</option>')
+                    .val();
+
+                    let data = {
+                    source_connector: {
+                        connection: {
+                            host: server.host,
+                            database: server.database,
+                            port: server.port,
+                            user: server.user,
+                            password: server.password,
+                        },
+                        type_connector: node.dbmanager,
+                        action: "get-columns",
+                        index: index,
+                        query: node.query
+                    },
+                };
+                if ((click_search == true || node.search == "yes") && init_advanced == true){
+                    data["source_connector"]["action"] = "advanced-query"
+                }
+                $.ajax({
+                    url: `${AITENEA_URL}/api/sql_get_db/`,
+                    method: "POST",
+                    data: JSON.stringify(data),
+                })
+                .done(function (json_data) {
+                    try{
+                        const names = json_data["data"]["names"];
+                        const types = json_data["data"]["types"];
+                        let cont = 0;
+                        $.each(names, function (key, name) {
+                        $("#node-input-x-columns").append(
+                        $("<option></option>").attr("value", name).text(name + ' - ' + types[name])
+                        );
+                        $("#node-input-y-columns").append(
+                        $("<option></option>").attr("value", name).text(name + ' - ' + types[name])
+                        );
+                        cont = cont + 1;
+                        
+                        });
+                        if (node.advanced == "no"){
+                            $(".sql-data").show();
+                        }else if ((click_search == true || node.search == "yes") && node.advanced == "yes"){
+                            $(".sql-data").show();
+                        }else{
+                            $(".sql-data").hide();
+                        }
+
+                        if (node.index != "") {
+                            $("#node-input-x-columns").val(node.xAttr).change();
+                            $("#node-input-y-columns").val(node.yAttr).change();
+                        }
+                    }
+                    catch{
+                        const error_msg = json_data["error"];
+                        if (error_msg != undefined){
+                        attr_error = true;
+                        let error_notification = RED.notify(error_msg, {
+                            type: "error",
+                            fixed: true,
+                            modal: true,
+                            buttons: [{
+                                text: "ok",
+                                click: function(e){
+                                    error_notification.close()
+                                }
+                            }
+                            ]
+                        });
+                    }
+                    }   
+                })
+                .always(function () {
+                    initialized = true;
+                });                  
+            }            
+
+            function showIndexAttributes(index){
+                $("#node-input-raw-columns")
+                    .find("option")
+                    .remove()
+                    .end()
+                    let data = {
+                    source_connector: {
+                        connection: {
+                            host: server.host,
+                            database: server.database,
+                            port: server.port,
+                            user: server.user,
+                            password: server.password,
+                        },
+                        type_connector: node.dbmanager,
+                        action: "get-columns",
+                        index: index,
+                    },
+                };
+                $.ajax({
+                    url: `${AITENEA_URL}/api/sql_get_db/`,
+                    method: "POST",
+                    data: JSON.stringify(data),
+                })
+                .done(function (json_data) {
+                    const names = json_data["data"]["names"];
+                    const types = json_data["data"]["types"];
+                    let cont = 0;
+                    const error_msg = json_data["error"];
+                        if (error_msg != undefined){
+                            let error_notification = RED.notify(error_msg, {
+                                type: "error",
+                                fixed: true,
+                                modal: true,
+                                buttons: [{
+                                    text: "ok",
+                                    click: function(e){
+                                        error_notification.close()
+                                    }
+                                }
+                                ]
+                            });
+                            check_error = true
+                        }else{
+                            check_error = false
+                        }
+
+                    $.each(names, function (key, name) {
+                        $("#node-input-raw-columns").append(
+                        $("<option> </option>").attr("value", name).text(name + ' - ' + types[name]).prop("disabled", true)
+                        );
+                        cont = cont + 1;
+                    });
+
+                    $(".visualize-columns").show();
+                    $(".advanced").show();                    
+
+                    if (node.index != "") {
+                        $("#node-input-raw-columns").val(node.rawAttr).change();                        
+                    }
+                })
+                .always(function () {
+                    initialized = true;
+                });                  
+            }
+        }
+    })          
+</script>
+
+<script type = "text/html" data-template-name = "From-SQL">
+    <div class="form-row dbmanager database manager">
+        <style> select:invalid{color:gray;}
+                option{color:black;}
+        </style> 
+        <label for="node-input-dbmanager"><i class="fa fa-pencil"></i>Database manager:</label>
+        <select id="node-input-dbmanager">
+          <option value="" disabled selected hidden>Select a BBDD manager</option>        
+          <option value="mysql">MySQL</option>
+          <option value="mssql">MSSQL</option>
+          <option value="postgresql">PostgreSQL</option>
+        </select> 
+      </div>    
+    
+    <div class = "form-row server" hidden>
+        <label for = "node-input-server"><i class = "fa fa-globe" aria-hidden="true"></i> Server </label>
+        <input type = "text" id = "node-input-server" placeholder = "Server" />
+    </div>
+
+    <div class="form-row select-index" hidden>
+        <label for="node-input-index">
+          <i class="fa fa-pencil" aria-hidden="true"></i> Select tables
+        </label>
+        <select id="node-input-index">
+          <option value="" selected>Select a table</option>
+        </select>
+    </div>
+
+    <div class="form-row visualize-columns" hidden>
+        <label for="node-input-raw-columns">
+          <i class="fa fa-pencil" aria-hidden="true"></i> Attributes:
+        </label>
+        <select id="node-input-raw-columns" multiple>
+        </select>
+    </div>
+    
+    <div class="form-row advanced" hidden>
+        <label for="node-input-advanced"><i class="fa fa-pencil" aria-hidden="true"></i>Advanced query:</label>
+        <select id="node-input-advanced">
+          <option value="" disabled selected hidden>Select an option</option>        
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select> 
+    </div>
+
+    <div id = "query" class = "query chart" hidden>
+        <label for = "node-input-query"><i class = "fa fa-tag"></i>SQL Query</label>        
+            <textarea
+                type = "text"
+                id = "node-input-query"
+                rows = "2"
+                cols = "1000"
+                placeholder = "Define here your query..."
+            ></textarea>  
+            <br /><br />                
+    </div>
+
+    <div class="form-row search" hidden>        
+        <button type="button" id="node-input-search">Search Query</button>
+    </div>
+
+    <div class="form-row select-columns sql-data" hidden>
+        <label for="node-input-x-columns">
+          <i class="fa fa-pencil" aria-hidden="true"></i> Select X Attributes
+        </label>
+        <select id="node-input-x-columns" multiple>
+          <option value="all" selected>All Attributes</option>
+        </select>
+        <br /><br />
+        <label for="node-input-y-columns">
+          <i class="fa fa-pencil" aria-hidden="true"></i> Select y Attributes
+        </label>
+        <select id="node-input-y-columns" multiple>
+          <option value="none" selected>None Attributes</option>
+        </select>
+    </div>  
+
+</script>
+
+<script type = "text/html" data-help-name = "From-SQL">
+    <!--This script is used to define the data help of the nan-values node-->
+  <p>
+    This node handles the connection to a SQL database manager.
+    <hr>
+    This node needs as input a timestamp node. The output of this node are the 
+    connection options, the node type that has been used, and details about the SQL search.
+    This node contains several parts that have been explained below in a deeper way.
+
+    <h1 style="color:black;"><b>1. Database Manager</b></h1>
+    <p>In this part, as the name indicates, the SQL database manager is selected.
+        Currently, there are the following managers:
+      <ul>
+        <li><i></i>MySQL </li>
+        <li><i></i>MSSQL </li>
+        <li><i></i>PostgreSQL </li>        
+      </ul>
+      As an important issue, the database manager must be coincide
+      with the connection parameters that are configured in the server part.
+    </p>
+
+    <h2 style = "color:black"><b>2. Server</b></h2>
+    <p>In this part the connection parameters are configured. There are two options,
+        either use an already declared server or create a new one. In order to create a 
+        new server, the pencil to the left side of this option must be clicked. The 
+        parameters that should be configured have been cited below:<br>
+      <ul>
+        <li><b><i>Name connection:</i></b> A name should be declared. Local is the default name.</li>
+        <li><b><i>Host</i></b> </li>        
+        <li><b><i>Database</i></b> </li>     
+        <li><b><i>Port</i></b> </li>           
+        <li><b><i>Username</i></b> </li>        
+        <li><b><i>Password</i></b> </li>          
+      </ul> 
+      The connection parameters are saved if the Add button is clicked or if the parameters
+      are changed, they can be saved with the Update button.
+    </p>
+
+    <h1 style="color:black;"><b>3. Select tables</b></h1>
+    <p>If the connection has been made successfully, this part shows all the tables names
+        that are available in the SQL database that previously was defined. In this part, 
+        a table must be selected.
+    </p>
+
+    <h1 style="color:black;"><b>4. Attributes</b></h1>
+    <p>This part shows all the columns for the table that previously was selected 
+        in the select tables part. Here, the columns can be view only and not selected.
+    </p>
+
+    <h1 style="color:black;"><b>5. Advanced query</b></h1>
+    <p>This option allows to choose if the user wants to do a more specific query.
+        If that is the case, a text area is deployed. Otherwise, if the user chooses
+        a no advanced query, the columns are deployed and in this case, they can be selected.        
+    </p>
+
+    <h1 style="color:black;"><b>6. SQL Query</b></h1>
+    <p>This option shows a text area where a SQL query can be done. In order to get
+        the result of the query, the 'Search Query' button must be clicked. If the text area is empty,
+        this button will be disabled. Also, if the query is not correct, 
+        a message will be displayed.
+    </p>
+
+    <h1 style="color:black;"><b>7. X and Y Attributes</b></h1>
+    <p>This is the final part where there are two blocks, X and Y attributes.
+        This part already allows select the desired columns where there are additional options,
+        All and None Attributes. It is a key part because the 'X' and 'Y' set are defined for
+        Machine Learning tasks.
+    </p>
+  </p>
+</script>
