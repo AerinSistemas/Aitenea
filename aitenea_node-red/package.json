@@ -18,9 +18,12 @@
     ],
     "dependencies": {
         "aitenea-conf": "file:/data/aitenea_nodes/aitenea-conf",
+        "NAN-Values": "file:/data/aitenea_nodes/nan-values",
+        "To-CSV": "file:/data/aitenea_nodes/to-csv",
         "data-csv": "file:/data/aitenea_nodes/data-csv",
         "data-elasticsearch": "file:/data/aitenea_nodes/data-elasticsearch",
         "data-evaluation": "file:/data/aitenea_nodes/data-evaluation",
+        "data-sqldb": "file:/data/aitenea_nodes/data-sqldb",
         "destination-elastic": "file:/data/aitenea_nodes/destination-elastic",
         "dotenv": "10.0.0",
         "elastic-conf": "file:/data/aitenea_nodes/elastic-conf",
@@ -36,7 +39,8 @@
         "pline-step": "file:/data/aitenea_nodes/pline-step",
         "redis-sub": "file:/data/aitenea_nodes/redis-sub",
         "manual-data": "file:/data/aitenea_nodes/manual-data",
-        "request": "2.88.2"
+        "request": "2.88.2",
+        "Sqldb-Conf": "file:/data/aitenea_nodes/sqldb-conf"
     },
     "engines": {
         "node": ">=10"

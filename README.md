@@ -1,10 +1,20 @@
-# AItenea
+------------------------------------------------------------------
+       d8888 8888888 88888888888                                  
+      d88888   888       888                                      
+     d88P888   888       888                                      
+    d88P 888   888       888   .d88b.  88888b.   .d88b.   8888b.  
+   d88P  888   888       888  d8P  Y8b 888 "88b d8P  Y8b     "88b 
+  d88P   888   888       888  88888888 888  888 88888888 .d888888
+ d8888888888   888       888  Y8b.     888  888 Y8b.     888  888
+d88P     888 8888888     888   "Y8888  888  888  "Y8888  "Y888888
+
+------------------------------------------------------------------
 
 
 A fun and efficient ML framework
 
 ---------------
-1. INTRODUCCIÓN
+1. INTRODUCCIóN
 ---------------
 
 AITENEA es un framework de machine learning (ML) de propósito general cuya principal virtud se encuentra en su capacidad para convertir cualquier algoritmo implementado  en un elemento disponible en una capa de visualización para una programación visual mediante flujos. Con esta filosofía resulta mucho más directo pasar de una implementación teórica o de prueba de concepto a un bloque de funcionalidad preparado para la producción. Desde  un punto de vista formal y siguiendo el estándar CRIPS-DM, AITENEA unifica las fases de preparación y transformación de datos, modelado, evaluación y despliegue, incorporando al mismo tiempo un mecanismo para añadir en esta cadena algoritmos nuevos desde su formulación matemática. De forma más descriptiva el objetivo de AITENEA es poder disponer de un sistema capaz de poner en producción y/o ensayar modelos de ML sin necesidad de hacer codificación alguna, todo ello de forma muy intuitiva. Además el diseño de AITENEA facilita la incorporación rápida de nuevos algoritmos por lo que no deberían existir límites evidentes al crecimiento y ampliación de métodos, por novedosos que estos resulten. Para alcanzar estos objetivos AITENEA se compone de tres capas o niveles y que el presente documento irá describiendo en los sucesivos apartados. A modo de introducción diremos que estos tres niveles son:
@@ -27,20 +37,97 @@ AITENEA is a general purpose machine learning (ML) framework whose main virtue l
 3. A high-level layer graphical user interface to be able to use the functionality of the low-level layer in flow-based programming.
 
 ---------------------------
-2. DEPENDENCIAS
+2. INSTALACIÓN Y DEPENDENCIAS 
 ---------------------------
 
-A la hora de desplegar el proyecto es necesario incluir el repositorio Elastic Tools dentro de la carpeta raíz de AITenea ejecutando el siguiente comando:
+A la hora de desplegar el proyecto es necesario verificar si tenemos ciertas dependencias o bien instalarlas en el caso de que nuestro portátil no lo tenga. A continuación se detalla los requisitos necesarios para ejecutar Aitenea los cuales se pueden ejecutar desde la consola:
+
+- GIT
+
+Verificar si existe git a través de:
 
 ```sh
-git clone https://gitlab.devel.aerin.es/pepe/elastictools
-```
+   git --version
+``` 
 
-También es necesario instalar make en nuestro equipo con el siguiente comando:
+Si no existe se procede a su instalación: 
 
 ```sh
-sudo apt-get install build-essential
+   sudo apt install git-all
+``` 
+
+Para mayor detalle si se necesita se puede acceder a la [documentación]('https://git-scm.com/book/en/v2/Getting-Started-Installing-Git')
+
+- MAKE Package
+
+Verificar si existe a través de:
+
+```sh
+   make --version
+``` 
+ 
+Para la instalación:
+
+```sh
+   sudo apt install make
+``` 
+O a través de:
+
+```sh
+   sudo apt-get install build-essential
 ```
+
+- BASH
+
+Verificar si existe a través de:
+
+```sh
+   bash --version
+``` 
+ 
+Para la instalación:
+
+```sh
+   sudo apt install bash-completion
+``` 
+ 
+
+- Elastic Tools repositorio
+
+Se debe incluir el repositorio Elastic Tools dentro de la carpeta raíz de AITenea ejecutando el siguiente comando:
+
+```sh
+   git clone https://gitlab.devel.aerin.es/pepe/elastictools
+```
+- Docker Engine
+
+Verificar si existe a través de:
+
+```sh
+   docker --version
+```
+ 
+Para la instalación:
+
+```sh
+   sudo apt install bash-completion
+```
+ 
+- Docker Compose
+
+Verificar si existe a través de:
+
+```sh
+   docker-compose --version
+```
+
+En el caso que no esté instalado lo podemos realizar tomando los pasos de la página oficial de Docker:
+
+- Docker Engine: https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+
+- Docker Compose: https://docs.docker.com/compose/install/
+
+Una vez que hemos realizado todos estos pasos, estamos listos para desplegar AItenea.
 
 ---------------------------
 3. DESPLIEGUES

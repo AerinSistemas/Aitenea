@@ -1,5 +1,5 @@
 {
-    "name": "data-elasticsearch",
+    "name": "To-CSV",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
@@ -8,9 +8,9 @@
     },
     "node-red" : {
       "nodes": {
-          "From-Elasticsearch": "elasticsearch.js"
+          "To-CSV": "to_csv.js"
       }
     },
-    "author": "Daniel Rodríguez Cabrera",
+    "author": "Ramona Marguta",
     "license": "ISC"
   }

@@ -735,5 +735,81 @@
                 "file": "/usr/src/node-red/node_modules/data-csv/csv.js"
             }
         }
+    },
+    "nan-values-node": {
+        "name": "nan-values-node",
+        "version": "1.0.0",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "NAN Values": {
+                "name": "NAN Values",
+                "types": [
+                    "NAN Values"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "nan-values-node",
+                "file": "/usr/src/node-red/node_modules/NAN-Values/nan-values.js"
+            }
+        }
+    },
+    "To-CSV": {
+        "name": "To-CSV",
+        "version": "1.0.0",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "To-CSV": {
+                "name": "To-CSV",
+                "types": [
+                    "To-CSV"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "To-CSV",
+                "file": "/usr/src/node-red/node_modules/To-CSV/to_csv.js"
+            }
+        }
+    },
+    "sqldb-node": {
+        "name": "sqldb-node",
+        "version": "1.0.0",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "From-SQL": {
+                "name": "From-SQL",
+                "types": [
+                    "From-SQL"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "sqldb-node",
+                "file": "/usr/src/node-red/node_modules/data-sqldb/sqlsearch.js"
+            }
+        }
+    },
+    "sqldb-conf": {
+        "name": "sqldb-conf",
+        "version": "1.0.0",
+        "local": false,
+        "user": false,
+        "nodes": {
+            "Sqldb-Conf": {
+                "name": "Sqldb-Conf",
+                "types": [
+                    "sqldb-conf"
+                ],
+                "enabled": true,
+                "local": false,
+                "user": false,
+                "module": "sqldb-conf",
+                "file": "/usr/src/node-red/node_modules/Sqldb-Conf/sqldb-conf.js"
+            }
+        }
     }
 }

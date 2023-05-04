@@ -1,19 +1,20 @@
 {
-  "name": "redis-sub",
+  "name": "nan-values-node",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "node-red": {
+  "keywords": [ "node-red" ],
+  "node-red" : {
     "nodes": {
-      "Redis-SUB": "redis-sub.js"
+      "NAN Values": "nan-values.js"
     }
   },
-  "author": "Ricardo Fernández Cuesta",
+  "author": "Jose Masache Cevallos",
   "license": "ISC",
   "dependencies": {
-    "ioredis": "4.27.7"
+    "request": "2.88.2"
   }
 }

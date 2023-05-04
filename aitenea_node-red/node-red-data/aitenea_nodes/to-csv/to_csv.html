@@ -1,0 +1,105 @@
+<script type="text/javascript">
+  RED.nodes.registerType("To-CSV", {
+    category: "AItenea Connector",
+    color: "#F8A91E",
+    align: 'right',
+    defaults: {
+      indexName: {
+        value: "",
+        required: true,
+      },
+      separator: {
+        value: "Tabulator",
+        required: true,
+      },
+      singleOutputFile:{
+        value: "true",
+        required: true,
+      },
+     
+      exists: {
+        value: false,
+        required: false,
+      },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "db.png",
+    label: function () {
+      return this.name || "To-CSV-" + this.indexName.toLowerCase();
+    },
+    inputLabels: function () {
+      return "From Data Cleaning or Pline";},
+    outputLabels: function () {
+      return "To Run";},
+    oneditprepare: function (msg) {
+      
+      let initialized = false;
+      let node = this;
+
+      RED.notify("Files with the same name as given in File Name will be overwritten", "error");
+      $(document).ready(function () {
+     
+      });     
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="To-CSV">
+
+  <div class="form-row indexName">
+    <label for="node-input-indexName"
+      ><i class="fa fa-pencil" aria-hidden="true"></i>File Name</label
+    >
+    <input id="node-input-indexName" type="text" placeholder="Name of CSV File" />
+  </div>
+
+
+  <div  class="form-row separator">
+    <label for="node-input-separator">
+      <i class="fa fa-pencil" aria-hidden="true"></i>Separator</label>
+      <select id="node-input-separator">
+        <option value="Tabulator">Tabulator</option>
+      </select>
+  </div>
+  
+  <div  class="form-row how singleOutputFile" >
+    <label for="node-input-singleOutputFile">
+      <i class="fa fa-pencil" aria-hidden="true"></i>Single-Output-CSVs</label>
+      <select id="node-input-singleOutputFile">
+        <option value="true">true</option>
+        <option value="false">false</option>
+      </select>
+  </div>
+
+
+
+  <!--
+  <div class="form-row overwrite" >
+    <label for="node-input-overwrite"
+      ><i class="fa fa-pencil" aria-hidden="false"></i> Want to overwrite file?
+    </label
+    >
+    <input type="checkbox" id="node-input-overwrite" />
+  </div>
+  <div class="form-row exists" hidden>
+    <input type="checkbox" id="node-input-exists" style="display:none" hidden />
+  </div>
+
+  <div class="form-row select-data" hidden>
+    <p>*Done to finish</p>
+  </div>
+</script>
+-->
+
+<script type="text/html" data-help-name="To-CSV">
+  <p>
+    This node allows you to save results coming from AItenea predictions or
+    transformation to a CSV file.
+  </p>
+  <h3>Details</h3>
+  <p>
+    You must provide the name of file in which data will be stored as CSV.
+  </p>
+  <p>Finally, click on 'Done'.</p>
+</script>
