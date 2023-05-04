@@ -105,7 +105,7 @@ Crear las carpetas "data" y "csv" en local. Para ello hay que estar dentro de la
 Se debe incluir el repositorio Elastic Tools dentro de la carpeta raíz de AITenea ejecutando el siguiente comando:
 
 ```sh
-   git clone https://gitlab.devel.aerin.es/pepe/elastictools
+   git clone https://github.com/AerinSistemas/elastictools.git
 ```
 - Docker Engine
 
