@@ -91,8 +91,16 @@ Para la instalación:
    sudo apt install bash-completion
 ``` 
  
+ - En local
+
+Crear las carpetas "data" y "csv" en local. Para ello hay que estar dentro de la carpeta donde ha sido clonado aitenea y ejecutar el siguiente comando desde un terminal:
+
+```sh
+   mkdir data && mkdir data/csv
+``` 
 
 - Elastic Tools repositorio
+
 
 Se debe incluir el repositorio Elastic Tools dentro de la carpeta raíz de AITenea ejecutando el siguiente comando:
 
