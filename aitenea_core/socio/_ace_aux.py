@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import resample
 import scipy
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # por el uso de la función append en vez de concat es necesario suprimir ciertos mensajes molestos
 import warnings

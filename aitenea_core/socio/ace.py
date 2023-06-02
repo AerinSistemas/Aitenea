@@ -3,7 +3,7 @@ import dask
 from aitenea.aitenea_core.base_class_preprocessing import BaseClassPreprocessing
 from aitenea.aitenea_core.decorators import fit_decorator
 from aitenea.logsconf.log_conf import logging_config
-from aitenea.aitenea_core.socio.ace_aux import _AceAux
+from aitenea_core.socio._ace_aux import _AceAux
 import numpy as np
 
 import logging
@@ -35,13 +35,13 @@ class Ace(BaseClassPreprocessing):
     @fit_decorator
     def fit(self, X, y=None):
         self.init_selector()
-        self.mind.fit(X)
+        self.mind.calculate(X)
         return self
 
     @fit_decorator
     def fit_transform(self, X, y=None):
         self.fit(X)
-        return self.mind.transform(X)
+        return self.mind
             
     def transform(self, X):
         self.mind.ace(X)
